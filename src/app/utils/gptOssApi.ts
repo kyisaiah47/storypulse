@@ -9,17 +9,22 @@ export async function generateStoryElements({
 	mode: string;
 }) {
 	// Call backend Express proxy, which forwards to gpt-oss
-	const response = await fetch('http://localhost:4000/api/chat', {
-		method: 'POST',
+	const response = await fetch("http://localhost:4000/api/chat", {
+		method: "POST",
 		headers: {
-			'Content-Type': 'application/json',
+			"Content-Type": "application/json",
 		},
 		body: JSON.stringify({
 			messages: [
-				{ role: 'system', content: `You are a world-building AI for a collaborative storytelling app. Mode: ${mode}. World state: ${JSON.stringify(world)}. Respond in JSON with new locations, characters, items, and events only.` },
-				{ role: 'user', content: input },
+				{
+					role: "system",
+					content: `You are a world-building AI for a collaborative storytelling app. Mode: ${mode}. World state: ${JSON.stringify(
+						world
+					)}. Respond in JSON with new locations, characters, items, and events only.`,
+				},
+				{ role: "user", content: input },
 			],
-			model: 'gpt-oss-20b', // or 'gpt-oss-120b' if using the larger model
+			model: "gpt-oss-20b", // or 'gpt-oss-120b' if using the larger model
 			max_tokens: 512,
 		}),
 	});
