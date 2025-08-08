@@ -73,6 +73,9 @@ type GeometryArgs =
 
 type Entity = {
 	name?: string;
+	label?: string;
+	icon?: string;
+	emoji?: string;
 	description?: string;
 	shape?: string;
 	color?: string;
@@ -452,13 +455,24 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 		}
 	};
 
-	const label =
-		entity.name ||
-		(type === "location"
-			? "Location"
-			: type === "character"
-			? "Character"
-			: "Item");
+	// Prefer label > emoji > icon > name > fallback
+	let labelContent: React.ReactNode = null;
+	if (entity.label) {
+		labelContent = entity.label;
+	} else if (entity.emoji) {
+		labelContent = <span style={{ fontSize: 20 }}>{entity.emoji}</span>;
+	} else if (entity.icon) {
+		labelContent = <span style={{ fontSize: 18 }}>{entity.icon}</span>;
+	} else if (entity.name) {
+		labelContent = entity.name;
+	} else {
+		labelContent =
+			type === "location"
+				? "Location"
+				: type === "character"
+				? "Character"
+				: "Item";
+	}
 	const color =
 		entity.color ||
 		(type === "location"
@@ -512,7 +526,7 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 							: "-10px",
 				}}
 			>
-				{label}
+				{labelContent}
 			</Html>
 			{/* Recursively render children as sub-groups */}
 			{entity.children?.map((child, idx) => (
