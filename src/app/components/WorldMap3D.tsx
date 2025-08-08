@@ -25,6 +25,9 @@ type Entity = {
 	geometry?: string; // e.g. "boxGeometry", "coneGeometry", etc.
 	args?: any[]; // geometry args array
 	material?: MaterialProps;
+	position?: [number, number, number];
+	rotation?: [number, number, number];
+	scale?: [number, number, number];
 };
 
 type PinProps = {
@@ -395,7 +398,9 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 
 	return (
 		<group
-			position={position}
+			position={entity.position ?? position}
+			rotation={entity.rotation}
+			scale={entity.scale}
 			onClick={onClick}
 		>
 			<mesh
