@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
 import type { WorldState } from "../hooks/useWorldState";
@@ -83,7 +83,7 @@ export default function WorldMap3D({
 			<Canvas
 				shadows
 				dpr={[1, 2]}
-				camera={{ position: [0, 6, 10], fov: 35, near: 0.1, far: 200 }}
+				camera={{ position: [0, 10, 20], fov: 50, near: 0.1, far: 200 }}
 			>
 				{/* Atmosphere / framing */}
 				{/* @ts-expect-error three types */}
