@@ -43,14 +43,23 @@ function InputBox({ onSubmit }: { onSubmit: (text: string) => void }) {
 interface Location {
 	name: string;
 	description: string;
+	shape?: string;
+	color?: string;
+	size?: string;
 }
 interface Character {
 	name: string;
 	description: string;
+	shape?: string;
+	color?: string;
+	size?: string;
 }
 interface Item {
 	name: string;
 	description: string;
+	shape?: string;
+	color?: string;
+	size?: string;
 }
 interface Event {
 	name: string;
@@ -129,8 +138,162 @@ export default function Page() {
 		}
 	};
 
+	// Mock data for testing (with shape/color data)
+	const mockWorld: WorldState = {
+		locations: [
+			{
+				name: "Enchanted Forest",
+				description: "A mystical forest full of secrets and ancient trees.",
+				shape: "tree",
+				color: "#228B22",
+				size: "large",
+			},
+			{
+				name: "Crystal Lake",
+				description:
+					"A shimmering lake with magical properties and hidden depths.",
+				shape: "water",
+				color: "#4682B4",
+				size: "medium",
+			},
+			{
+				name: "Sunspire Village",
+				description:
+					"A bustling village at the edge of the forest, home to many adventurers.",
+				shape: "village",
+				color: "#DEB887",
+				size: "medium",
+			},
+			{
+				name: "Obsidian Tower",
+				description:
+					"A dark, looming tower said to be the lair of a forgotten sorcerer.",
+				shape: "tower",
+				color: "#2F2F2F",
+				size: "large",
+			},
+			{
+				name: "Whispering Caves",
+				description:
+					"A network of caves that echo with the voices of the past.",
+				shape: "cave",
+				color: "#696969",
+				size: "medium",
+			},
+		],
+		characters: [
+			{
+				name: "Elyra",
+				description: "A wise elf guardian who protects the forest.",
+				shape: "humanoid",
+				color: "#98FB98",
+				size: "medium",
+			},
+			{
+				name: "Tharn",
+				description: "A wandering warrior seeking redemption.",
+				shape: "warrior",
+				color: "#B22222",
+				size: "large",
+			},
+			{
+				name: "Mira",
+				description: "A curious inventor from Sunspire Village.",
+				shape: "humanoid",
+				color: "#FFB6C1",
+				size: "small",
+			},
+			{
+				name: "The Shadow Mage",
+				description:
+					"A mysterious figure rumored to dwell in the Obsidian Tower.",
+				shape: "mage",
+				color: "#483D8B",
+				size: "medium",
+			},
+			{
+				name: "Glim",
+				description: "A mischievous sprite who knows every secret path.",
+				shape: "sprite",
+				color: "#FFD700",
+				size: "small",
+			},
+		],
+		items: [
+			{
+				name: "Ancient Sword",
+				description: "A blade with runes of power, lost for centuries.",
+				shape: "sword",
+				color: "#C0C0C0",
+				size: "medium",
+			},
+			{
+				name: "Healing Potion",
+				description: "Restores health instantly, brewed from rare herbs.",
+				shape: "potion",
+				color: "#FF69B4",
+				size: "small",
+			},
+			{
+				name: "Crystal Amulet",
+				description: "Said to protect the wearer from dark magic.",
+				shape: "gem",
+				color: "#00CED1",
+				size: "small",
+			},
+			{
+				name: "Map of the Caves",
+				description: "Shows hidden passages in the Whispering Caves.",
+				shape: "scroll",
+				color: "#F4A460",
+				size: "medium",
+			},
+			{
+				name: "Sunstone",
+				description: "A gem that glows with the light of a summer day.",
+				shape: "gem",
+				color: "#FFA500",
+				size: "small",
+			},
+		],
+		events: [
+			{
+				name: "Moonrise Ritual",
+				description:
+					"A ceremony under the full moon that awakens ancient magic.",
+			},
+			{
+				name: "Village Festival",
+				description:
+					"A celebration of the changing seasons in Sunspire Village.",
+			},
+			{
+				name: "Forest Fire",
+				description: "A sudden blaze threatens the Enchanted Forest.",
+			},
+			{
+				name: "Cave-In",
+				description:
+					"A collapse blocks the main entrance to the Whispering Caves.",
+			},
+			{
+				name: "Tower Awakening",
+				description:
+					"Strange lights and sounds emerge from the Obsidian Tower.",
+			},
+		],
+	};
+
 	return (
 		<main className="relative w-screen h-screen overflow-hidden font-sans bg-black">
+			{/* Mock Data Button for Testing */}
+			<button
+				onClick={() => setWorld(mockWorld)}
+				className="absolute bottom-10 right-8 z-30 bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700"
+			>
+				Inject Mock World
+			</button>
+
 			{/* Full-screen 3D background */}
 			<div className="absolute inset-0 z-0">
 				<WorldMap3D
@@ -142,7 +305,7 @@ export default function Page() {
 			</div>
 
 			{/* Top Navigation */}
-			<div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-4 z-20 bg-black/30 backdrop-blur-md border-b border-white/10">
+			<div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-4 z-20 backdrop-blur-md">
 				<h1 className="text-white font-extrabold tracking-tight text-2xl">
 					StoryPulse
 				</h1>

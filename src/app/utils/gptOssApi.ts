@@ -1,27 +1,70 @@
 // lib/generateStoryElements.ts
+type Element = {
+  name: string;
+  description: string;
+  shape: string;
+  color: string; // "#RRGGBB"
+  size: "small" | "medium" | "large";
+};
 type WorldState = {
-  locations?: any[];
-  characters?: any[];
-  items?: any[];
-  events?: any[];
-  // ...whatever else you track
+  locations?: Element[];
+  characters?: Element[];
+  items?: Element[];
+  events?: Element[];
 };
 
 type StoryElements = {
-  locations: any[];
-  characters: any[];
-  items: any[];
-  events: any[];
+  locations: Element[];
+  characters: Element[];
+  items: Element[];
+  events: Element[];
 };
 
-function summarizeWorld(world: WorldState): Partial<WorldState> {
-  // keep it lean to save tokens
-  const pick = <T>(arr: T[] | undefined, n: number) => (Array.isArray(arr) ? arr.slice(0, n) : []);
+const SHAPES = [
+  "tree","tower","cave","village","water",
+  "humanoid","warrior","mage","sprite",
+  "sword","potion","gem","scroll","dragon"
+] as const;
+
+function brief<T>(arr: T[] | undefined, n: number): T[] {
+  return Array.isArray(arr) ? arr.slice(-n) : [];
+}
+
+function summarizeWorld(world: WorldState) {
   return {
-    locations: pick(world.locations, 6),
-    characters: pick(world.characters, 8),
-    items: pick(world.items, 8),
-    events: pick(world.events, 6),
+    locations: brief(world.locations, 6).map(pickCore),
+    characters: brief(world.characters, 8).map(pickCore),
+    items: brief(world.items, 8).map(pickCore),
+    events: brief(world.events, 6).map(pickCore),
+  };
+  function pickCore(e: any) {
+    // keep only small fields to save tokens
+    return {
+      name: e?.name ?? "",
+      shape: e?.shape ?? "",
+      size: e?.size ?? "",
+      color: e?.color ?? "",
+    };
+  }
+}
+
+function sanitize(elements: any): StoryElements {
+  const isHex = (s: any) => typeof s === "string" && /^#[0-9A-Fa-f]{6}$/.test(s);
+  const coerce = (list: any[]): Element[] =>
+    (Array.isArray(list) ? list : []).map((e) => {
+      const name = String(e?.name ?? "").slice(0, 60) || "Untitled";
+      const description = String(e?.description ?? "").slice(0, 500);
+      const shape = SHAPES.includes(e?.shape) ? e.shape : "gem";
+      const color = isHex(e?.color) ? e.color : "#"+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,"0");
+      const size = (["small","medium","large"] as const).includes(e?.size) ? e.size : "medium";
+      return { name, description, shape, color, size };
+    });
+
+  return {
+    locations: coerce(elements?.locations ?? []),
+    characters: coerce(elements?.characters ?? []),
+    items: coerce(elements?.items ?? []),
+    events: coerce(elements?.events ?? []),
   };
 }
 
@@ -30,74 +73,73 @@ export async function generateStoryElements({
   world,
   mode,
   temperature = 0.6,
-  maxTokens = 600,
+  maxTokens = 700,
 }: {
   input: string;
   world: WorldState;
-  mode: "seed" | "expand" | "connect" | string;
+  mode: string;
   temperature?: number;
   maxTokens?: number;
 }): Promise<StoryElements> {
   const worldBrief = summarizeWorld(world);
 
-  const res = await fetch("http://localhost:4000/api/chat", {
+  const response = await fetch("http://localhost:4000/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      // OpenAI-style body for your proxy
       model: "gpt-oss-20b",
       temperature,
       max_tokens: maxTokens,
 
-      // ✅ Ask for JSON only, and signal the proxy to enable Ollama JSON mode
-      format: "json",                 // <-- custom flag your backend will look for
+      // 👇 tell your proxy to enable Ollama JSON mode
+      format: "json",
+
       messages: [
         {
           role: "system",
           content:
-            "You are a world-building AI for a collaborative storytelling app.\n" +
-            "Reasoning: medium\n" +
-            "Return JSON only. No prose, no commentary.",
+`You are a world-building AI for a collaborative storytelling app.
+Reasoning: medium
+Return JSON only. No prose or commentary.
+Output shape:
+{ "locations":[], "characters":[], "items":[], "events":[] }
+Each element must include:
+- name (string, <=60 chars)
+- description (string, <=500 chars)
+- shape (one of: ${SHAPES.join(", ")})
+- color ("#RRGGBB")
+- size ("small" | "medium" | "large")`
         },
         {
           role: "user",
           content:
-            `Mode: ${mode}\n` +
-            `Current world (brief): ${JSON.stringify(worldBrief)}\n\n` +
-            `Task: Based on the user input, respond ONLY with JSON of the shape:\n` +
-            `{ "locations":[], "characters":[], "items":[], "events":[] }\n\n` +
-            `User input: ${input}`,
+`Mode: ${mode}
+Current world (brief): ${JSON.stringify(worldBrief)}
+
+User input: ${input}
+
+Respond ONLY with JSON of the required shape.`
         },
       ],
     }),
   });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`LLM request failed (${res.status}): ${text}`);
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`LLM error ${response.status}: ${text}`);
   }
 
-  const data = await res.json();
-
-  // Expect OpenAI-ish shape from your proxy
+  const data = await response.json();
   const raw = data?.choices?.[0]?.message?.content;
-  if (typeof raw !== "string") {
-    // Try non-stream Ollama passthrough (some adapters return the object already)
-    if (raw && typeof raw === "object") return raw as StoryElements;
-    throw new Error("LLM returned no content");
-  }
 
-  try {
-    const parsed = JSON.parse(raw);
-    // minimal guards
-    return {
-      locations: Array.isArray(parsed.locations) ? parsed.locations : [],
-      characters: Array.isArray(parsed.characters) ? parsed.characters : [],
-      items: Array.isArray(parsed.items) ? parsed.items : [],
-      events: Array.isArray(parsed.events) ? parsed.events : [],
-    };
-  } catch {
-    // If the model ever leaks text, this keeps your app stable.
-    return { locations: [], characters: [], items: [], events: [] };
-  }
+  // Some adapters already return parsed JSON; handle both cases.
+  const parsed = typeof raw === "string" ? safeParseJSON(raw) : raw;
+  if (!parsed) return { locations: [], characters: [], items: [], events: [] };
+
+  return sanitize(parsed);
+}
+
+function safeParseJSON(s: string | undefined | null) {
+  if (!s) return null;
+  try { return JSON.parse(s); } catch { return null; }
 }
