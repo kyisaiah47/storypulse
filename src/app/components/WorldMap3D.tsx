@@ -1,4 +1,5 @@
 "use client";
+
 import { useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
@@ -62,6 +63,9 @@ type CapsuleGeometryArgs = [
 	heightSegments?: number
 ];
 
+type EntityOnClick = string | { action: string; [key: string]: unknown };
+type EntityOnHover = string | { tooltip: string; [key: string]: unknown };
+
 type GeometryArgs =
 	| BoxGeometryArgs
 	| ConeGeometryArgs
@@ -99,8 +103,8 @@ type Entity = {
 	rotation?: [number, number, number];
 	scale?: [number, number, number];
 	animation?: AnimationProps;
-	onClick?: string | { action: string; [key: string]: any };
-	onHover?: string | { tooltip: string; [key: string]: any };
+	onClick?: EntityOnClick;
+	onHover?: EntityOnHover;
 	children?: Entity[];
 };
 
@@ -509,14 +513,13 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 			: "#10b981");
 
 	// Handle click: call parent onClick and also handle entity.onClick action
-	const handleClick = (e: any) => {
+	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (typeof entity.onClick === "string") {
 			// Example: log or trigger event
-			// eslint-disable-next-line no-console
 			console.log("Entity onClick:", entity.onClick);
 		} else if (typeof entity.onClick === "object" && entity.onClick?.action) {
-			// eslint-disable-next-line no-console
+			console.log("Entity onClick:", entity.onClick);
 			console.log(
 				"Entity onClick action:",
 				entity.onClick.action,
