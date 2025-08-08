@@ -99,6 +99,8 @@ type Entity = {
 	rotation?: [number, number, number];
 	scale?: [number, number, number];
 	animation?: AnimationProps;
+	onClick?: string | { action: string; [key: string]: any };
+	onHover?: string | { tooltip: string; [key: string]: any };
 	children?: Entity[];
 };
 
@@ -109,7 +111,10 @@ type PinProps = {
 	onClick: () => void;
 };
 
+import React, { useState as useLocalState } from "react";
+
 function Pin({ position, entity, type, onClick }: PinProps) {
+	const [hovered, setHovered] = useLocalState(false);
 	// Allow AI to specify geometry and args directly
 	const getGeometry = () => {
 		if (entity.geometry && entity.args) {
@@ -503,12 +508,40 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 			? "#3b82f6"
 			: "#10b981");
 
+	// Handle click: call parent onClick and also handle entity.onClick action
+	const handleClick = (e: any) => {
+		e.stopPropagation();
+		if (typeof entity.onClick === "string") {
+			// Example: log or trigger event
+			// eslint-disable-next-line no-console
+			console.log("Entity onClick:", entity.onClick);
+		} else if (typeof entity.onClick === "object" && entity.onClick?.action) {
+			// eslint-disable-next-line no-console
+			console.log(
+				"Entity onClick action:",
+				entity.onClick.action,
+				entity.onClick
+			);
+		}
+		onClick();
+	};
+
+	// Tooltip for hover
+	let tooltip: string | undefined = undefined;
+	if (typeof entity.onHover === "string") {
+		tooltip = entity.onHover;
+	} else if (typeof entity.onHover === "object" && entity.onHover?.tooltip) {
+		tooltip = entity.onHover.tooltip;
+	}
+
 	return (
 		<group
 			position={entity.position ?? position}
 			rotation={entity.rotation}
 			scale={entity.scale}
-			onClick={onClick}
+			onClick={handleClick}
+			onPointerOver={() => setHovered(true)}
+			onPointerOut={() => setHovered(false)}
 		>
 			<mesh
 				ref={ref}
@@ -549,6 +582,27 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 				}}
 			>
 				{labelContent}
+				{hovered && tooltip && (
+					<div
+						style={{
+							background: "rgba(0,0,0,0.85)",
+							color: "#fff",
+							borderRadius: 6,
+							padding: "4px 10px",
+							fontSize: 13,
+							marginTop: 6,
+							whiteSpace: "pre-line",
+							boxShadow: "0 2px 8px #0008",
+							zIndex: 100,
+							position: "absolute",
+							left: "50%",
+							transform: "translateX(-50%)",
+							pointerEvents: "auto",
+						}}
+					>
+						{tooltip}
+					</div>
+				)}
 			</Html>
 			{/* Recursively render children as sub-groups */}
 			{entity.children?.map((child, idx) => (
