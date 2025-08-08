@@ -21,11 +21,14 @@ const mapOptions = (b:any) => {
 // Non-stream
 app.post("/api/chat", async (req, res) => {
   try {
+	const wantsJson = req.body?.format === "json";
+
     const upstream = await axios.post(OLLAMA_URL, {
       model: OLLAMA_MODEL,
       messages: req.body.messages,
       options: mapOptions(req.body),
       stream: false,
+	...(wantsJson ? { format: "json" } : {}),
     }, { timeout: 60_000 });
 
     const msg = upstream.data?.message ?? { role: "assistant", content: "" };
