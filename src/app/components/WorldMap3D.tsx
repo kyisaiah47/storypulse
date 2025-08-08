@@ -5,6 +5,17 @@ import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
 import * as THREE from "three";
 import type { WorldState } from "../hooks/useWorldState";
 
+type MaterialProps = {
+	color?: string;
+	metalness?: number;
+	roughness?: number;
+	opacity?: number;
+	transparent?: boolean;
+	emissive?: string;
+	emissiveIntensity?: number;
+	[key: string]: any;
+};
+
 type Entity = {
 	name?: string;
 	description?: string;
@@ -13,6 +24,7 @@ type Entity = {
 	size?: string;
 	geometry?: string; // e.g. "boxGeometry", "coneGeometry", etc.
 	args?: any[]; // geometry args array
+	material?: MaterialProps;
 };
 
 type PinProps = {
@@ -226,6 +238,12 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 	};
 
 	const getMaterial = () => {
+		// If entity.material is present, use it for full customization
+		if (entity.material) {
+			// Merge color from entity.color if not present in material
+			const matProps = { color: entity.color, ...entity.material };
+			return <meshStandardMaterial {...matProps} />;
+		}
 		// Storyful color palette for locations
 		let color = entity.color;
 		if (!color && type === "location") {
