@@ -71,6 +71,11 @@ type GeometryArgs =
 	| DodecahedronGeometryArgs
 	| CapsuleGeometryArgs;
 
+type AnimationProps = {
+	type?: "spin" | "bounce" | "pulse" | "none";
+	speed?: number;
+};
+
 type Entity = {
 	name?: string;
 	label?: string;
@@ -93,6 +98,7 @@ type Entity = {
 	position?: [number, number, number];
 	rotation?: [number, number, number];
 	scale?: [number, number, number];
+	animation?: AnimationProps;
 	children?: Entity[];
 };
 
@@ -144,10 +150,26 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 
 	useFrame(({ clock }) => {
 		const t = clock.getElapsedTime();
-		const bob = Math.sin(t * 0.9 + phase) * 0.25; // gentle 0.25u bob
+		const anim = entity.animation?.type ?? "bounce";
+		const speed = entity.animation?.speed ?? 1;
 		if (ref.current) {
-			ref.current.position.y = baseY + bob;
-			ref.current.rotation.y = Math.sin(t * 0.5 + phase) * 0.2; // subtle sway
+			switch (anim) {
+				case "spin":
+					ref.current.rotation.y = t * speed;
+					break;
+				case "bounce":
+					ref.current.position.y = baseY + Math.sin(t * speed + phase) * 0.25;
+					break;
+				case "pulse":
+					ref.current.scale.setScalar(1 + Math.sin(t * speed + phase) * 0.15);
+					break;
+				case "none":
+				default:
+					// Subtle idle motion
+					ref.current.position.y = baseY + Math.sin(t * 0.9 + phase) * 0.25;
+					ref.current.rotation.y = Math.sin(t * 0.5 + phase) * 0.2;
+					break;
+			}
 		}
 	});
 
