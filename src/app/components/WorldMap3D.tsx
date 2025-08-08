@@ -5,17 +5,22 @@ import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
 import * as THREE from "three";
 import type { WorldState } from "../hooks/useWorldState";
 
-type Entity = { name?: string; description?: string };
+type Entity = { 
+	name?: string; 
+	description?: string; 
+	shape?: string; 
+	color?: string; 
+	size?: string; 
+};
 
 type PinProps = {
 	position: [number, number, number];
-	color: string;
-	label: string;
+	entity: Entity;
 	type: "location" | "character" | "item";
 	onClick: () => void;
 };
 
-function Pin({ position, color, label, type, onClick }: PinProps) {
+function Pin({ position, entity, type, onClick }: PinProps) {
 	const ref = useRef<THREE.Mesh>(null!);
 	// Randomized phase so pins don't bounce in unison
 	const phase = useMemo(() => Math.random() * Math.PI * 2, []);
@@ -30,54 +35,119 @@ function Pin({ position, color, label, type, onClick }: PinProps) {
 		}
 	});
 
-	const renderGeometry = () => {
-		switch (type) {
-			case "location":
-				return <octahedronGeometry args={[0.8, 0]} />;
-			case "character":
-				return <coneGeometry args={[0.5, 1.4, 8]} />;
-			case "item":
-				return <boxGeometry args={[0.7, 0.7, 0.7]} />;
+	const getGeometryFromShape = (shape?: string, size?: string) => {
+		const sizeMultiplier = size === "large" ? 1.4 : size === "small" ? 0.7 : 1.0;
+		
+		switch (shape) {
+			case "tree":
+				return <coneGeometry args={[0.6 * sizeMultiplier, 1.6 * sizeMultiplier, 8]} />;
+			case "tower":
+				return <cylinderGeometry args={[0.3 * sizeMultiplier, 0.5 * sizeMultiplier, 2.0 * sizeMultiplier, 8]} />;
+			case "village":
+				return <boxGeometry args={[1.2 * sizeMultiplier, 0.8 * sizeMultiplier, 1.2 * sizeMultiplier]} />;
+			case "cave":
+				return <sphereGeometry args={[0.8 * sizeMultiplier, 8, 6]} />;
+			case "water":
+				return <cylinderGeometry args={[1.0 * sizeMultiplier, 1.0 * sizeMultiplier, 0.2, 12]} />;
+			case "warrior":
+				return <capsuleGeometry args={[0.4 * sizeMultiplier, 1.2 * sizeMultiplier, 4, 8]} />;
+			case "mage":
+				return <coneGeometry args={[0.6 * sizeMultiplier, 1.8 * sizeMultiplier, 6]} />;
+			case "sprite":
+				return <octahedronGeometry args={[0.5 * sizeMultiplier, 0]} />;
+			case "humanoid":
+				return <capsuleGeometry args={[0.3 * sizeMultiplier, 1.0 * sizeMultiplier, 4, 8]} />;
+			case "dragon":
+				return <dodecahedronGeometry args={[0.9 * sizeMultiplier, 0]} />;
+			case "sword":
+				return <boxGeometry args={[0.1 * sizeMultiplier, 1.2 * sizeMultiplier, 0.1 * sizeMultiplier]} />;
+			case "potion":
+				return <cylinderGeometry args={[0.2 * sizeMultiplier, 0.3 * sizeMultiplier, 0.8 * sizeMultiplier, 8]} />;
+			case "gem":
+				return <octahedronGeometry args={[0.4 * sizeMultiplier, 1]} />;
+			case "scroll":
+				return <cylinderGeometry args={[0.1 * sizeMultiplier, 0.1 * sizeMultiplier, 0.8 * sizeMultiplier, 8]} />;
+			// Fallback based on type
+			case undefined:
 			default:
-				return <sphereGeometry args={[0.6, 16, 16]} />;
+				if (type === "location") return <octahedronGeometry args={[0.8 * sizeMultiplier, 0]} />;
+				if (type === "character") return <coneGeometry args={[0.5 * sizeMultiplier, 1.4 * sizeMultiplier, 8]} />;
+				if (type === "item") return <boxGeometry args={[0.7 * sizeMultiplier, 0.7 * sizeMultiplier, 0.7 * sizeMultiplier]} />;
+				return <sphereGeometry args={[0.6 * sizeMultiplier, 16, 16]} />;
 		}
 	};
 
 	const getMaterial = () => {
+		const color = entity.color || (type === "location" ? "#f59e42" : type === "character" ? "#3b82f6" : "#10b981");
 		const baseProps = { color };
-		switch (type) {
-			case "location":
+		
+		switch (entity.shape) {
+			case "water":
 				return (
 					<meshStandardMaterial
 						{...baseProps}
+						transparent
+						opacity={0.8}
+						roughness={0.1}
 						metalness={0.1}
-						roughness={0.3}
+					/>
+				);
+			case "gem":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						metalness={0.9}
+						roughness={0.1}
 						emissive={color}
-						emissiveIntensity={0.1}
+						emissiveIntensity={0.2}
 					/>
 				);
-			case "character":
+			case "sword":
 				return (
 					<meshStandardMaterial
 						{...baseProps}
-						metalness={0.3}
-						roughness={0.4}
-					/>
-				);
-			case "item":
-				return (
-					<meshStandardMaterial
-						{...baseProps}
-						metalness={0.7}
+						metalness={0.8}
 						roughness={0.2}
-						emissive={color}
-						emissiveIntensity={0.05}
 					/>
 				);
 			default:
-				return <meshStandardMaterial {...baseProps} />;
+				switch (type) {
+					case "location":
+						return (
+							<meshStandardMaterial
+								{...baseProps}
+								metalness={0.1}
+								roughness={0.3}
+								emissive={color}
+								emissiveIntensity={0.1}
+							/>
+						);
+					case "character":
+						return (
+							<meshStandardMaterial
+								{...baseProps}
+								metalness={0.3}
+								roughness={0.4}
+							/>
+						);
+					case "item":
+						return (
+							<meshStandardMaterial
+								{...baseProps}
+								metalness={0.7}
+								roughness={0.2}
+								emissive={color}
+								emissiveIntensity={0.05}
+							/>
+						);
+					default:
+						return <meshStandardMaterial {...baseProps} />;
+				}
 		}
 	};
+
+	const label = entity.name || (type === "location" ? "Location" : type === "character" ? "Character" : "Item");
+	const color = entity.color || (type === "location" ? "#f59e42" : type === "character" ? "#3b82f6" : "#10b981");
 
 	return (
 		<group
@@ -89,9 +159,7 @@ function Pin({ position, color, label, type, onClick }: PinProps) {
 				castShadow
 				receiveShadow
 			>
-				{/* @ts-expect-error: JSX types for three.js elements */}
-				{renderGeometry()}
-				{/* @ts-expect-error: JSX types for three.js elements */}
+				{getGeometryFromShape(entity.shape, entity.size)}
 				{getMaterial()}
 			</mesh>
 			{/* Add a subtle glow effect for atmosphere */}
@@ -99,9 +167,7 @@ function Pin({ position, color, label, type, onClick }: PinProps) {
 				scale={[1.4, 1.4, 1.4]}
 				ref={ref}
 			>
-				{/* @ts-expect-error: JSX types for three.js elements */}
 				<sphereGeometry args={[0.6, 8, 8]} />
-				{/* @ts-expect-error: JSX types for three.js elements */}
 				<meshBasicMaterial
 					color={color}
 					transparent
@@ -186,19 +252,16 @@ export default function WorldMap3D({
 				camera={{ position: [0, 6, 10], fov: 70, near: 0.1, far: 200 }}
 			>
 				{/* Softer depth so the horizon feels natural */}
-				{/* @ts-expect-error three types */}
 				<fog
 					attach="fog"
 					args={["#c9c9c9", 30, 100]}
 				/>
 
 				{/* Warmer lighting */}
-				{/* @ts-expect-error three types */}
 				<ambientLight
 					color="#fff4e6"
 					intensity={0.55}
 				/>
-				{/* @ts-expect-error three types */}
 				<directionalLight
 					color="#ffdca8"
 					position={[10, 12, 6]}
@@ -209,14 +272,11 @@ export default function WorldMap3D({
 				/>
 
 				{/* Ground */}
-				{/* @ts-expect-error three types */}
 				<mesh
 					rotation={[-Math.PI / 2, 0, 0]}
 					receiveShadow
 				>
-					{/* @ts-expect-error three types */}
 					<planeGeometry args={[200, 200]} />
-					{/* @ts-expect-error three types */}
 					<meshStandardMaterial color="#a9a9a9" />
 				</mesh>
 
@@ -225,8 +285,7 @@ export default function WorldMap3D({
 					<Pin
 						key={`loc-${i}`}
 						position={locPositions[i]}
-						color="#f59e42"
-						label={loc.name || "Location"}
+						entity={loc}
 						type="location"
 						onClick={() =>
 							setSelected({
@@ -240,8 +299,7 @@ export default function WorldMap3D({
 					<Pin
 						key={`char-${i}`}
 						position={charPositions[i]}
-						color="#3b82f6"
-						label={char.name || "Character"}
+						entity={char}
 						type="character"
 						onClick={() =>
 							setSelected({
@@ -255,8 +313,7 @@ export default function WorldMap3D({
 					<Pin
 						key={`item-${i}`}
 						position={itemPositions[i]}
-						color="#10b981"
-						label={item.name || "Item"}
+						entity={item}
 						type="item"
 						onClick={() =>
 							setSelected({

@@ -20,7 +20,22 @@ export async function generateStoryElements({
 					role: "system",
 					content: `You are a world-building AI for a collaborative storytelling app. Mode: ${mode}. World state: ${JSON.stringify(
 						world
-					)}. Respond in JSON with new locations, characters, items, and events only.`,
+					)}. 
+
+Respond in JSON with new locations, characters, items, and events. For each element, include:
+- name: string
+- description: string  
+- shape: string (e.g., "tree", "tower", "cave", "village", "water", "humanoid", "warrior", "mage", "sprite", "sword", "potion", "gem", "scroll")
+- color: string (hex color like "#FF0000")
+- size: string ("small", "medium", "large")
+
+Example:
+{
+  "locations": [{"name": "Dark Forest", "description": "...", "shape": "tree", "color": "#2F4F2F", "size": "large"}],
+  "characters": [{"name": "Fire Dragon", "description": "...", "shape": "dragon", "color": "#FF4500", "size": "large"}],
+  "items": [{"name": "Magic Ring", "description": "...", "shape": "gem", "color": "#FFD700", "size": "small"}],
+  "events": []
+}`,
 				},
 				{ role: "user", content: input },
 			],
