@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
+import * as THREE from "three";
 import type { WorldState } from "../hooks/useWorldState";
 
 type Entity = { name?: string; description?: string };
@@ -10,10 +11,11 @@ type PinProps = {
 	position: [number, number, number];
 	color: string;
 	label: string;
+	type: "location" | "character" | "item";
 	onClick: () => void;
 };
 
-function Pin({ position, color, label, onClick }: PinProps) {
+function Pin({ position, color, label, type, onClick }: PinProps) {
 	const ref = useRef<THREE.Mesh>(null!);
 	// Randomized phase so pins don't bounce in unison
 	const phase = useMemo(() => Math.random() * Math.PI * 2, []);
@@ -28,15 +30,84 @@ function Pin({ position, color, label, onClick }: PinProps) {
 		}
 	});
 
+	const renderGeometry = () => {
+		switch (type) {
+			case "location":
+				return <octahedronGeometry args={[0.8, 0]} />;
+			case "character":
+				return <coneGeometry args={[0.5, 1.4, 8]} />;
+			case "item":
+				return <boxGeometry args={[0.7, 0.7, 0.7]} />;
+			default:
+				return <sphereGeometry args={[0.6, 16, 16]} />;
+		}
+	};
+
+	const getMaterial = () => {
+		const baseProps = { color };
+		switch (type) {
+			case "location":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						metalness={0.1}
+						roughness={0.3}
+						emissive={color}
+						emissiveIntensity={0.1}
+					/>
+				);
+			case "character":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						metalness={0.3}
+						roughness={0.4}
+					/>
+				);
+			case "item":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						metalness={0.7}
+						roughness={0.2}
+						emissive={color}
+						emissiveIntensity={0.05}
+					/>
+				);
+			default:
+				return <meshStandardMaterial {...baseProps} />;
+		}
+	};
+
 	return (
-		<mesh
-			ref={ref}
+		<group
 			position={position}
 			onClick={onClick}
-			castShadow
 		>
-			<sphereGeometry args={[0.6, 16, 16]} />
-			<meshStandardMaterial color={color} />
+			<mesh
+				ref={ref}
+				castShadow
+				receiveShadow
+			>
+				{/* @ts-expect-error: JSX types for three.js elements */}
+				{renderGeometry()}
+				{/* @ts-expect-error: JSX types for three.js elements */}
+				{getMaterial()}
+			</mesh>
+			{/* Add a subtle glow effect for atmosphere */}
+			<mesh
+				scale={[1.4, 1.4, 1.4]}
+				ref={ref}
+			>
+				{/* @ts-expect-error: JSX types for three.js elements */}
+				<sphereGeometry args={[0.6, 8, 8]} />
+				{/* @ts-expect-error: JSX types for three.js elements */}
+				<meshBasicMaterial
+					color={color}
+					transparent
+					opacity={0.08}
+				/>
+			</mesh>
 			<Html
 				transform
 				distanceFactor={4}
@@ -45,12 +116,19 @@ function Pin({ position, color, label, onClick }: PinProps) {
 					color: "#fff",
 					fontWeight: 700,
 					fontSize: 14,
-					textShadow: "0 0 4px #000",
+					textShadow: "0 0 6px #000",
+					textAlign: "center",
+					marginTop:
+						type === "character"
+							? "-25px"
+							: type === "location"
+							? "-15px"
+							: "-10px",
 				}}
 			>
 				{label}
 			</Html>
-		</mesh>
+		</group>
 	);
 }
 
@@ -77,21 +155,28 @@ export default function WorldMap3D({
 	const characters: Entity[] = safeArr(world.characters);
 	const items: Entity[] = safeArr(world.items);
 
-	const pinPositions = (arr: Entity[], radius: number, y: number) =>
-		arr.length === 0
-			? []
-			: arr.map((_, i) => {
-					const angle = (i / arr.length) * 2 * Math.PI;
-					return [Math.cos(angle) * radius, y, Math.sin(angle) * radius] as [
-						number,
-						number,
-						number
-					];
-			  });
+	// Enhanced layout: more natural positioning with randomization
+	const pinPositions = (
+		arr: Entity[],
+		baseRadius: number,
+		yLevel: number,
+		spread = 1
+	) => {
+		if (arr.length === 0) return [];
 
-	const locPositions = pinPositions(locations, 8, 0.5);
-	const charPositions = pinPositions(characters, 5, 1.5);
-	const itemPositions = pinPositions(items, 3, 2.5);
+		return arr.map((_, i) => {
+			const angle = (i / arr.length) * 2 * Math.PI;
+			const radius = baseRadius + (Math.random() - 0.5) * spread * 3;
+			const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 2;
+			const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 2;
+			const y = yLevel + (Math.random() - 0.5) * 0.5;
+			return [x, y, z] as [number, number, number];
+		});
+	};
+
+	const locPositions = pinPositions(locations, 12, 0.8, 1.5);
+	const charPositions = pinPositions(characters, 8, 1.2, 1);
+	const itemPositions = pinPositions(items, 5, 0.4, 0.8);
 
 	return (
 		<div className="w-full h-screen bg-black relative">
@@ -142,6 +227,7 @@ export default function WorldMap3D({
 						position={locPositions[i]}
 						color="#f59e42"
 						label={loc.name || "Location"}
+						type="location"
 						onClick={() =>
 							setSelected({
 								label: loc.name || "Location",
@@ -156,6 +242,7 @@ export default function WorldMap3D({
 						position={charPositions[i]}
 						color="#3b82f6"
 						label={char.name || "Character"}
+						type="character"
 						onClick={() =>
 							setSelected({
 								label: char.name || "Character",
@@ -170,6 +257,7 @@ export default function WorldMap3D({
 						position={itemPositions[i]}
 						color="#10b981"
 						label={item.name || "Item"}
+						type="item"
 						onClick={() =>
 							setSelected({
 								label: item.name || "Item",

@@ -129,33 +129,103 @@ export default function Page() {
 		}
 	};
 
-	// Mock data for testing
+	// Mock data for testing (abundant StoryPulse scene)
 	const mockWorld: WorldState = {
 		locations: [
 			{
 				name: "Enchanted Forest",
-				description: "A mystical forest full of secrets.",
+				description: "A mystical forest full of secrets and ancient trees.",
 			},
 			{
 				name: "Crystal Lake",
-				description: "A shimmering lake with magical properties.",
+				description:
+					"A shimmering lake with magical properties and hidden depths.",
+			},
+			{
+				name: "Sunspire Village",
+				description:
+					"A bustling village at the edge of the forest, home to many adventurers.",
+			},
+			{
+				name: "Obsidian Tower",
+				description:
+					"A dark, looming tower said to be the lair of a forgotten sorcerer.",
+			},
+			{
+				name: "Whispering Caves",
+				description:
+					"A network of caves that echo with the voices of the past.",
 			},
 		],
 		characters: [
-			{ name: "Elyra", description: "A wise elf guardian." },
-			{ name: "Tharn", description: "A wandering warrior." },
+			{
+				name: "Elyra",
+				description: "A wise elf guardian who protects the forest.",
+			},
+			{
+				name: "Tharn",
+				description: "A wandering warrior seeking redemption.",
+			},
+			{
+				name: "Mira",
+				description: "A curious inventor from Sunspire Village.",
+			},
+			{
+				name: "The Shadow Mage",
+				description:
+					"A mysterious figure rumored to dwell in the Obsidian Tower.",
+			},
+			{
+				name: "Glim",
+				description: "A mischievous sprite who knows every secret path.",
+			},
 		],
 		items: [
-			{ name: "Ancient Sword", description: "A blade with runes of power." },
+			{
+				name: "Ancient Sword",
+				description: "A blade with runes of power, lost for centuries.",
+			},
 			{
 				name: "Healing Potion",
-				description: "Restores health instantly.",
+				description: "Restores health instantly, brewed from rare herbs.",
+			},
+			{
+				name: "Crystal Amulet",
+				description: "Said to protect the wearer from dark magic.",
+			},
+			{
+				name: "Map of the Caves",
+				description: "Shows hidden passages in the Whispering Caves.",
+			},
+			{
+				name: "Sunstone",
+				description: "A gem that glows with the light of a summer day.",
 			},
 		],
 		events: [
 			{
 				name: "Moonrise Ritual",
-				description: "A ceremony under the full moon.",
+				description:
+					"A ceremony under the full moon that awakens ancient magic.",
+			},
+			{
+				name: "Village Festival",
+				description:
+					"A celebration of the changing seasons in Sunspire Village.",
+			},
+			{
+				name: "Forest Fire",
+				description: "A sudden blaze threatens the Enchanted Forest.",
+			},
+			{
+				name: "Cave-In",
+				description:
+					"A collapse blocks the main entrance to the Whispering Caves.",
+			},
+			{
+				name: "Tower Awakening",
+				description:
+					"Strange lights and sounds emerge from the Obsidian Tower.",
 			},
 		],
 	};
