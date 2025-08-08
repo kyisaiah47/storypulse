@@ -1,10 +1,11 @@
 "use client";
 import React, { useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
 import type { WorldState } from "../hooks/useWorldState";
 
 type Entity = { name?: string; description?: string };
+
 type PinProps = {
 	position: [number, number, number];
 	color: string;
@@ -17,16 +18,18 @@ function Pin({ position, color, label, onClick }: PinProps) {
 		<mesh
 			position={position}
 			onClick={onClick}
+			castShadow
 		>
-			<sphereGeometry args={[0.4, 16, 16]} />
+			<sphereGeometry args={[0.6, 16, 16]} />
 			<meshStandardMaterial color={color} />
 			<Html
-				distanceFactor={10}
+				transform
+				distanceFactor={4}
 				style={{
 					pointerEvents: "none",
 					color: "#fff",
-					fontWeight: "bold",
-					fontSize: "0.9rem",
+					fontWeight: 700,
+					fontSize: 14,
 					textShadow: "0 0 4px #000",
 				}}
 			>
@@ -54,13 +57,11 @@ export default function WorldMap3D({
 		description: string;
 	} | null>(null);
 
-	// Defensive: fallback for empty world state
 	const safeArr = (arr: unknown): Entity[] => (Array.isArray(arr) ? arr : []);
 	const locations: Entity[] = safeArr(world.locations);
 	const characters: Entity[] = safeArr(world.characters);
 	const items: Entity[] = safeArr(world.items);
 
-	// Simple layout: spread pins in a circle for each type
 	const pinPositions = (arr: Entity[], radius: number, y: number) =>
 		arr.length === 0
 			? []
@@ -78,27 +79,44 @@ export default function WorldMap3D({
 	const itemPositions = pinPositions(items, 3, 2.5);
 
 	return (
-		<div className="w-full h-[400px] bg-black rounded mt-4 relative">
-			<Canvas camera={{ position: [0, 10, 20], fov: 50 }}>
-				{/* @ts-expect-error: JSX types for three.js elements */}
-				<ambientLight intensity={0.5} />
-				{/* @ts-expect-error: JSX types for three.js elements */}
-				<directionalLight
-					position={[10, 10, 5]}
-					intensity={1}
+		<div className="w-full h-screen bg-black relative">
+			<Canvas
+				shadows
+				dpr={[1, 2]}
+				camera={{ position: [0, 6, 10], fov: 35, near: 0.1, far: 200 }}
+			>
+				{/* Atmosphere / framing */}
+				{/* @ts-expect-error three types */}
+				<fog
+					attach="fog"
+					args={["#bdbdbd", 20, 60]}
 				/>
-				{/* Ground plane */}
-				{/* @ts-expect-error: JSX types for three.js elements */}
+
+				{/* Lights */}
+				{/* @ts-expect-error three types */}
+				<ambientLight intensity={0.6} />
+				{/* @ts-expect-error three types */}
+				<directionalLight
+					position={[10, 12, 6]}
+					intensity={1.1}
+					castShadow
+					shadow-mapSize-width={2048}
+					shadow-mapSize-height={2048}
+				/>
+
+				{/* Ground */}
+				{/* @ts-expect-error three types */}
 				<mesh
 					rotation={[-Math.PI / 2, 0, 0]}
 					receiveShadow
 				>
-					{/* @ts-expect-error: JSX types for three.js elements */}
-					<planeGeometry args={[50, 50]} />
-					{/* @ts-expect-error: JSX types for three.js elements */}
-					<meshStandardMaterial color="#e0e0e0" />
+					{/* @ts-expect-error three types */}
+					<planeGeometry args={[200, 200]} />
+					{/* @ts-expect-error three types */}
+					<meshStandardMaterial color="#bdbdbd" />
 				</mesh>
-				{/* Locations */}
+
+				{/* Pins */}
 				{locations.map((loc, i) => (
 					<Pin
 						key={`loc-${i}`}
@@ -113,7 +131,6 @@ export default function WorldMap3D({
 						}
 					/>
 				))}
-				{/* Characters */}
 				{characters.map((char, i) => (
 					<Pin
 						key={`char-${i}`}
@@ -128,7 +145,6 @@ export default function WorldMap3D({
 						}
 					/>
 				))}
-				{/* Items */}
 				{items.map((item, i) => (
 					<Pin
 						key={`item-${i}`}
@@ -143,10 +159,23 @@ export default function WorldMap3D({
 						}
 					/>
 				))}
+
+				{/* Controls & perf */}
+				<OrbitControls
+					makeDefault
+					target={[0, 1.5, 0]}
+					minPolarAngle={0.6}
+					maxPolarAngle={1.3}
+					enableDamping
+					dampingFactor={0.08}
+				/>
+				<AdaptiveDpr pixelated />
+				<Preload all />
 			</Canvas>
+
 			{/* Description overlay */}
 			{selected && (
-				<div className="absolute left-1/2 top-4 -translate-x-1/2 bg-white bg-opacity-90 rounded shadow-lg px-6 py-4 z-10 max-w-xs text-black">
+				<div className="absolute  top-20  right-8 bg-white/90 rounded shadow-lg px-6 py-4 z-100 max-w-xs text-black">
 					<div className="font-bold mb-1">{selected.label}</div>
 					<div className="mb-2 text-sm">{selected.description}</div>
 					<button
@@ -157,6 +186,7 @@ export default function WorldMap3D({
 					</button>
 				</div>
 			)}
+
 			{/* Error overlay */}
 			{error && setError && (
 				<div className="absolute left-1/2 top-20 -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded z-20">
@@ -169,9 +199,10 @@ export default function WorldMap3D({
 					</button>
 				</div>
 			)}
+
 			{/* Loading overlay */}
 			{loading && (
-				<div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-80 px-4 py-2 rounded shadow z-20 text-black">
+				<div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/80 px-4 py-2 rounded shadow z-20 text-black">
 					Loading...
 				</div>
 			)}

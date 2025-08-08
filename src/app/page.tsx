@@ -129,8 +129,47 @@ export default function Page() {
 		}
 	};
 
+	// Mock data for testing
+	const mockWorld: WorldState = {
+		locations: [
+			{
+				name: "Enchanted Forest",
+				description: "A mystical forest full of secrets.",
+			},
+			{
+				name: "Crystal Lake",
+				description: "A shimmering lake with magical properties.",
+			},
+		],
+		characters: [
+			{ name: "Elyra", description: "A wise elf guardian." },
+			{ name: "Tharn", description: "A wandering warrior." },
+		],
+		items: [
+			{ name: "Ancient Sword", description: "A blade with runes of power." },
+			{
+				name: "Healing Potion",
+				description: "Restores health instantly.",
+			},
+		],
+		events: [
+			{
+				name: "Moonrise Ritual",
+				description: "A ceremony under the full moon.",
+			},
+		],
+	};
+
 	return (
 		<main className="relative w-screen h-screen overflow-hidden font-sans bg-black">
+			{/* Mock Data Button for Testing */}
+			<button
+				onClick={() => setWorld(mockWorld)}
+				className="absolute bottom-10 right-8 z-30 bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700"
+			>
+				Inject Mock World
+			</button>
+
 			{/* Full-screen 3D background */}
 			<div className="absolute inset-0 z-0">
 				<WorldMap3D
