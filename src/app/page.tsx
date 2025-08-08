@@ -3,38 +3,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiSend } from "react-icons/fi";
-import WorldMap3D from "./components/WorldMap3D";
+import ModeToggle from "./components/ModeToggle";
 import { useWorldState } from "./hooks/useWorldState";
 import { generateStoryElements } from "./utils/gptOssApi";
-
-// -------------------- ModeToggle (inline) --------------------
-function ModeToggle({
-	mode,
-	setMode,
-}: {
-	mode: string;
-	setMode: (m: string) => void;
-}) {
-	const modes = ["Education", "Wildcard"];
-	return (
-		<div className="flex gap-2">
-			{modes.map((m) => (
-				<button
-					key={m}
-					onClick={() => setMode(m.toLowerCase())}
-					className={`px-3 py-1 rounded-full text-sm font-medium border border-white/20 backdrop-blur-sm transition
-						${
-							mode.toLowerCase() === m.toLowerCase()
-								? "bg-white/30 text-white"
-								: "bg-black/30 text-white hover:bg-white/20"
-						}`}
-				>
-					{m}
-				</button>
-			))}
-		</div>
-	);
-}
+import WorldMap3D from "./components/WorldMap3D";
 
 // -------------------- InputBox (inline) --------------------
 function InputBox({ onSubmit }: { onSubmit: (text: string) => void }) {
@@ -165,7 +137,6 @@ export default function Page() {
 					loading={loading}
 					error={error}
 					setError={setError}
-					style={{ width: "100%", height: "100%" }}
 				/>
 			</div>
 

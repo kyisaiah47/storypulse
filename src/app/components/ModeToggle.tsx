@@ -9,24 +9,21 @@ export default function ModeToggle({
 	setMode: (m: string) => void;
 }) {
 	return (
-		<div className="flex gap-2 items-center mt-2">
-			<span className="font-semibold">Mode:</span>
-			<button
-				className={`px-3 py-1 rounded ${
-					mode === "education" ? "bg-green-600 text-white" : "bg-gray-200"
-				}`}
-				onClick={() => setMode("education")}
-			>
-				Education
-			</button>
-			<button
-				className={`px-3 py-1 rounded ${
-					mode === "wildcard" ? "bg-purple-600 text-white" : "bg-gray-200"
-				}`}
-				onClick={() => setMode("wildcard")}
-			>
-				Wildcard
-			</button>
+		<div className="flex gap-2">
+			{["Education", "Wildcard"].map((m) => (
+				<button
+					key={m}
+					onClick={() => setMode(m.toLowerCase())}
+					className={`px-3 py-1 rounded-full text-sm font-medium border border-white/20 backdrop-blur-sm transition
+						${
+							mode.toLowerCase() === m.toLowerCase()
+								? "bg-white/30 text-white"
+								: "bg-black/30 text-white hover:bg-white/20"
+						}`}
+				>
+					{m}
+				</button>
+			))}
 		</div>
 	);
 }
