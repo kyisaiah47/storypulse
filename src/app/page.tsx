@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import InputBox from "./components/InputBox";
 import ModeToggle from "./components/ModeToggle";
