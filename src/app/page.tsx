@@ -85,6 +85,7 @@ export default function Page() {
 				world,
 				mode,
 			});
+			console.log("DEBUG newElements:", newElements); // Debug log
 			setWorld({
 				locations: [...world.locations, ...(newElements.locations || [])],
 				characters: [...world.characters, ...(newElements.characters || [])],
