@@ -55,9 +55,9 @@ export default function WorldMap3D({
 		});
 	};
 
-	const locPositions = pinPositions(locations, 12, 0.8, 1.5);
-	const charPositions = pinPositions(characters, 8, 1.2, 1);
-	const itemPositions = pinPositions(items, 5, 0.4, 0.8);
+	const locPositions = pinPositions(locations, 14.5, 0.8, 2.4);
+	const charPositions = pinPositions(characters, 10.5, 1.1, 1.8);
+	const itemPositions = pinPositions(items, 6.5, 0.5, 1.3);
 
 	return (
 		<div className="w-full h-screen bg-black relative">
@@ -67,20 +67,24 @@ export default function WorldMap3D({
 				camera={{ position: [0, 5.2, 10], fov: 60, near: 0.1, far: 200 }}
 			>
 				{/* Sky / horizon */}
+				<color
+					attach="background"
+					args={["#232933"]}
+				/>
 				<Sky
 					distance={4500}
-					turbidity={4}
-					rayleigh={1.5}
-					mieCoefficient={0.004}
-					mieDirectionalG={0.9}
-					inclination={0.48} // sun height
-					azimuth={0.2} // sun direction
+					turbidity={1.2}
+					rayleigh={2.1}
+					mieCoefficient={0.003}
+					mieDirectionalG={0.85}
+					inclination={0.42}
+					azimuth={0.18}
 				/>
 
 				{/* Subtle depth */}
 				<fog
 					attach="fog"
-					args={["#d5d0c8", 35, 100]}
+					args={["#d4c6ad", 28, 90]}
 				/>
 
 				{/* Warm lighting */}
@@ -114,9 +118,9 @@ export default function WorldMap3D({
 				{/* Soft contact shadows to anchor objects */}
 				<ContactShadows
 					position={[0, 0.01, 0]}
-					opacity={0.35}
-					scale={40}
-					blur={2.5}
+					opacity={0.33}
+					scale={42}
+					blur={3}
 					far={8}
 					resolution={1024}
 					frames={1}

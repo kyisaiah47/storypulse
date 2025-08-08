@@ -19,41 +19,40 @@ export default function Pin({ position, entity, type, onClick }: PinProps) {
 	const [hovered, setHovered] = useState(false);
 	const ref = useRef<THREE.Mesh>(null!);
 	const { camera } = useThree();
-	const [df, setDf] = useState(6); // Html/Text scale factor-ish
+	const [df, setDf] = useState(4); // label scale factor
 	const worldPos = useMemo(() => new THREE.Vector3(), []);
 	// Randomized phase so pins don't bounce in unison
 	const phase = useMemo(() => Math.random() * Math.PI * 2, []);
 	const baseY = position[1];
 
 	useFrame(({ clock }) => {
+		if (!ref.current) return;
 		const t = clock.getElapsedTime();
 		const anim = entity.animation?.type ?? "bounce";
 		const speed = entity.animation?.speed ?? 1;
-		if (ref.current) {
-			// Animate mesh
-			switch (anim) {
-				case "spin":
-					ref.current.rotation.y = t * speed;
-					break;
-				case "bounce":
-					ref.current.position.y = baseY + Math.sin(t * speed + phase) * 0.25;
-					break;
-				case "pulse":
-					ref.current.scale.setScalar(1 + Math.sin(t * speed + phase) * 0.15);
-					break;
-				case "none":
-				default:
-					// Subtle idle motion
-					ref.current.position.y = baseY + Math.sin(t * 0.9 + phase) * 0.25;
-					ref.current.rotation.y = Math.sin(t * 0.5 + phase) * 0.2;
-					break;
-			}
-			// Distance-aware label scaling
-			ref.current.getWorldPosition(worldPos);
-			const dist = camera.position.distanceTo(worldPos);
-			const next = THREE.MathUtils.clamp(dist / 4.5, 3.5, 10);
-			if (Math.abs(next - df) > 0.05) setDf(next);
+		// Animate mesh
+		switch (anim) {
+			case "spin":
+				ref.current.rotation.y = t * speed;
+				break;
+			case "bounce":
+				ref.current.position.y = baseY + Math.sin(t * speed + phase) * 0.25;
+				break;
+			case "pulse":
+				ref.current.scale.setScalar(1 + Math.sin(t * speed + phase) * 0.15);
+				break;
+			case "none":
+			default:
+				// Subtle idle motion
+				ref.current.position.y = baseY + Math.sin(t * 0.9 + phase) * 0.25;
+				ref.current.rotation.y = Math.sin(t * 0.5 + phase) * 0.2;
+				break;
 		}
+		// Distance-aware label scaling (tighter clamp)
+		ref.current.getWorldPosition(worldPos);
+		const dist = camera.position.distanceTo(worldPos);
+		const next = THREE.MathUtils.clamp(dist / 5.2, 2.2, 5.2);
+		if (Math.abs(next - df) > 0.05) setDf(next);
 	});
 
 	// Allow AI to specify geometry and args directly
@@ -63,27 +62,31 @@ export default function Pin({ position, entity, type, onClick }: PinProps) {
 				case "boxGeometry":
 					return <boxGeometry args={entity.args as BoxGeometryArgs} />;
 				case "coneGeometry":
-					return <coneGeometry args={entity.args as ConeGeometryArgs} />;
-				case "cylinderGeometry":
-					return (
-						<cylinderGeometry args={entity.args as CylinderGeometryArgs} />
-					);
-				case "sphereGeometry":
-					return <sphereGeometry args={entity.args as SphereGeometryArgs} />;
-				case "octahedronGeometry":
-					return (
-						<octahedronGeometry args={entity.args as OctahedronGeometryArgs} />
-					);
-				case "dodecahedronGeometry":
-					return (
-						<dodecahedronGeometry
-							args={entity.args as DodecahedronGeometryArgs}
+					{
+						/* Subtle aura */
+					}
+					<mesh scale={[1.3, 1.3, 1.3]}>
+						<sphereGeometry args={[0.6, 14, 14]} />
+						<meshBasicMaterial
+							color={color}
+							transparent
+							opacity={hovered ? 0.14 : 0.07}
 						/>
-					);
-				case "capsuleGeometry":
-					return <capsuleGeometry args={entity.args as CapsuleGeometryArgs} />;
-				default:
-					return null;
+					</mesh>;
+					{
+						/* Ground ring to anchor */
+					}
+					<mesh
+						rotation={[-Math.PI / 2, 0, 0]}
+						position={[0, -0.01, 0]}
+						receiveShadow
+					>
+						<ringGeometry args={[0.38, 0.6, 48]} />
+						<meshBasicMaterial
+							transparent
+							opacity={hovered ? 0.18 : 0.1}
+						/>
+					</mesh>;
 			}
 		}
 		// Fallback to shape/size logic
@@ -509,15 +512,20 @@ export default function Pin({ position, entity, type, onClick }: PinProps) {
 			</mesh>
 			{/* Billboard label */}
 			<Text
-				position={[0, 1.2, 0]}
-				fontSize={0.18 * df}
+				position={[0, 1.05, 0]}
+				fontSize={0.12 * df}
 				color="#ffffff"
 				anchorX="center"
 				anchorY="bottom"
-				outlineWidth={0.008}
-				outlineColor="rgba(0,0,0,0.75)"
-				maxWidth={2.4}
+				outlineWidth={0.006}
+				outlineColor="rgba(0,0,0,0.8)"
+				maxWidth={2.2}
 				billboard
+				renderOrder={10}
+				depthTest={false}
+				transparent
+				opacity={hovered ? 1 : 0.85}
+				visible={hovered || df <= 4.8}
 			>
 				{String(labelContent)}
 			</Text>
