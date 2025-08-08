@@ -13,8 +13,63 @@ type MaterialProps = {
 	transparent?: boolean;
 	emissive?: string;
 	emissiveIntensity?: number;
-	[key: string]: any;
+	// Add more meshStandardMaterial props as needed
 };
+
+type BoxGeometryArgs = [
+	width?: number,
+	height?: number,
+	depth?: number,
+	widthSegments?: number,
+	heightSegments?: number,
+	depthSegments?: number
+];
+type ConeGeometryArgs = [
+	radius?: number,
+	height?: number,
+	radialSegments?: number,
+	heightSegments?: number,
+	openEnded?: boolean,
+	thetaStart?: number,
+	thetaLength?: number
+];
+type CylinderGeometryArgs = [
+	radiusTop?: number,
+	radiusBottom?: number,
+	height?: number,
+	radialSegments?: number,
+	heightSegments?: number,
+	openEnded?: boolean,
+	thetaStart?: number,
+	thetaLength?: number
+];
+type SphereGeometryArgs = [
+	radius?: number,
+	widthSegments?: number,
+	heightSegments?: number,
+	phiStart?: number,
+	phiLength?: number,
+	thetaStart?: number,
+	thetaLength?: number
+];
+type OctahedronGeometryArgs = [radius?: number, detail?: number];
+type DodecahedronGeometryArgs = [radius?: number, detail?: number];
+type CapsuleGeometryArgs = [
+	radius?: number,
+	length?: number,
+	capSegments?: number,
+	radialSegments?: number,
+	heightSegments?: number
+];
+
+type GeometryArgs =
+	| BoxGeometryArgs
+	| ConeGeometryArgs
+	| CylinderGeometryArgs
+	| SphereGeometryArgs
+	| OctahedronGeometryArgs
+	| DodecahedronGeometryArgs
+	| CapsuleGeometryArgs;
 
 type Entity = {
 	name?: string;
@@ -22,8 +77,15 @@ type Entity = {
 	shape?: string;
 	color?: string;
 	size?: string;
-	geometry?: string; // e.g. "boxGeometry", "coneGeometry", etc.
-	args?: any[]; // geometry args array
+	geometry?:
+		| "boxGeometry"
+		| "coneGeometry"
+		| "cylinderGeometry"
+		| "sphereGeometry"
+		| "octahedronGeometry"
+		| "dodecahedronGeometry"
+		| "capsuleGeometry";
+	args?: GeometryArgs;
 	material?: MaterialProps;
 	position?: [number, number, number];
 	rotation?: [number, number, number];
@@ -40,22 +102,30 @@ type PinProps = {
 function Pin({ position, entity, type, onClick }: PinProps) {
 	// Allow AI to specify geometry and args directly
 	const getGeometry = () => {
-		if (entity.geometry && Array.isArray(entity.args)) {
+		if (entity.geometry && entity.args) {
 			switch (entity.geometry) {
 				case "boxGeometry":
-					return <boxGeometry args={entity.args} />;
+					return <boxGeometry args={entity.args as BoxGeometryArgs} />;
 				case "coneGeometry":
-					return <coneGeometry args={entity.args} />;
+					return <coneGeometry args={entity.args as ConeGeometryArgs} />;
 				case "cylinderGeometry":
-					return <cylinderGeometry args={entity.args} />;
+					return (
+						<cylinderGeometry args={entity.args as CylinderGeometryArgs} />
+					);
 				case "sphereGeometry":
-					return <sphereGeometry args={entity.args} />;
+					return <sphereGeometry args={entity.args as SphereGeometryArgs} />;
 				case "octahedronGeometry":
-					return <octahedronGeometry args={entity.args} />;
+					return (
+						<octahedronGeometry args={entity.args as OctahedronGeometryArgs} />
+					);
 				case "dodecahedronGeometry":
-					return <dodecahedronGeometry args={entity.args} />;
+					return (
+						<dodecahedronGeometry
+							args={entity.args as DodecahedronGeometryArgs}
+						/>
+					);
 				case "capsuleGeometry":
-					return <capsuleGeometry args={entity.args} />;
+					return <capsuleGeometry args={entity.args as CapsuleGeometryArgs} />;
 				default:
 					return null;
 			}
