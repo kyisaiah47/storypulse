@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
+import {
+	OrbitControls,
+	AdaptiveDpr,
+	Preload,
+	Sky,
+	ContactShadows,
+} from "@react-three/drei";
 import type { WorldState } from "../hooks/useWorldState";
 import Pin from "./Pin";
 import type { Entity } from "./types";
@@ -58,38 +64,65 @@ export default function WorldMap3D({
 			<Canvas
 				shadows
 				dpr={[1, 2]}
-				camera={{ position: [0, 6, 10], fov: 70, near: 0.1, far: 200 }}
+				camera={{ position: [0, 5.2, 10], fov: 60, near: 0.1, far: 200 }}
 			>
-				{/* Softer depth so the horizon feels natural */}
-				<fog
-					attach="fog"
-					args={["#c9c9c9", 30, 100]}
+				{/* Sky / horizon */}
+				<Sky
+					distance={4500}
+					turbidity={4}
+					rayleigh={1.5}
+					mieCoefficient={0.004}
+					mieDirectionalG={0.9}
+					inclination={0.48} // sun height
+					azimuth={0.2} // sun direction
 				/>
 
-				{/* Warmer lighting */}
+				{/* Subtle depth */}
+				<fog
+					attach="fog"
+					args={["#d5d0c8", 35, 100]}
+				/>
+
+				{/* Warm lighting */}
 				<ambientLight
 					color="#fff4e6"
-					intensity={0.55}
+					intensity={0.45}
 				/>
 				<directionalLight
 					color="#ffdca8"
 					position={[10, 12, 6]}
-					intensity={1.15}
+					intensity={1.1}
 					castShadow
 					shadow-mapSize-width={2048}
 					shadow-mapSize-height={2048}
+					shadow-camera-far={60}
 				/>
 
-				{/* Ground */}
+				{/* Ground: soft sand tone */}
 				<mesh
 					rotation={[-Math.PI / 2, 0, 0]}
 					receiveShadow
 				>
-					<planeGeometry args={[200, 200]} />
-					<meshStandardMaterial color="#a9a9a9" />
+					<planeGeometry args={[220, 220]} />
+					<meshStandardMaterial
+						color="#d9c7b0"
+						roughness={0.9}
+						metalness={0.02}
+					/>
 				</mesh>
 
-				{/* Pins */}
+				{/* Soft contact shadows to anchor objects */}
+				<ContactShadows
+					position={[0, 0.01, 0]}
+					opacity={0.35}
+					scale={40}
+					blur={2.5}
+					far={8}
+					resolution={1024}
+					frames={1}
+				/>
+
+				{/* Pins … (unchanged) */}
 				{locations.map((loc, i) => (
 					<Pin
 						key={`loc-${i}`}
@@ -133,12 +166,13 @@ export default function WorldMap3D({
 					/>
 				))}
 
-				{/* Controls & perf */}
 				<OrbitControls
 					makeDefault
-					target={[0, 1.5, 0]}
-					minPolarAngle={0.6}
-					maxPolarAngle={1.3}
+					target={[0, 1.2, 0]}
+					minPolarAngle={0.55}
+					maxPolarAngle={1.35}
+					minDistance={6}
+					maxDistance={22}
 					enableDamping
 					dampingFactor={0.08}
 				/>

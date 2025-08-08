@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import type {
 	PinProps,
@@ -18,6 +18,9 @@ import type {
 export default function Pin({ position, entity, type, onClick }: PinProps) {
 	const [hovered, setHovered] = useState(false);
 	const ref = useRef<THREE.Mesh>(null!);
+	const { camera } = useThree();
+	const [df, setDf] = useState(6); // Html/Text scale factor-ish
+	const worldPos = useMemo(() => new THREE.Vector3(), []);
 	// Randomized phase so pins don't bounce in unison
 	const phase = useMemo(() => Math.random() * Math.PI * 2, []);
 	const baseY = position[1];
@@ -27,6 +30,7 @@ export default function Pin({ position, entity, type, onClick }: PinProps) {
 		const anim = entity.animation?.type ?? "bounce";
 		const speed = entity.animation?.speed ?? 1;
 		if (ref.current) {
+			// Animate mesh
 			switch (anim) {
 				case "spin":
 					ref.current.rotation.y = t * speed;
@@ -44,6 +48,11 @@ export default function Pin({ position, entity, type, onClick }: PinProps) {
 					ref.current.rotation.y = Math.sin(t * 0.5 + phase) * 0.2;
 					break;
 			}
+			// Distance-aware label scaling
+			ref.current.getWorldPosition(worldPos);
+			const dist = camera.position.distanceTo(worldPos);
+			const next = THREE.MathUtils.clamp(dist / 4.5, 3.5, 10);
+			if (Math.abs(next - df) > 0.05) setDf(next);
 		}
 	});
 
@@ -477,56 +486,41 @@ export default function Pin({ position, entity, type, onClick }: PinProps) {
 				{getGeometry()}
 				{getMaterial()}
 			</mesh>
-			{/* Add a subtle glow effect for atmosphere */}
-			<mesh scale={[1.4, 1.4, 1.4]}>
-				<sphereGeometry args={[0.6, 8, 8]} />
+			{/* Subtle aura */}
+			<mesh scale={[1.35, 1.35, 1.35]}>
+				<sphereGeometry args={[0.6, 12, 12]} />
 				<meshBasicMaterial
 					color={color}
 					transparent
-					opacity={0.08}
+					opacity={hovered ? 0.18 : 0.08}
 				/>
 			</mesh>
-			<Html
-				transform
-				distanceFactor={4}
-				style={{
-					pointerEvents: "none",
-					color: "#fff",
-					fontWeight: 700,
-					fontSize: 14,
-					textShadow: "0 0 6px #000",
-					textAlign: "center",
-					marginTop:
-						type === "character"
-							? "-25px"
-							: type === "location"
-							? "-15px"
-							: "-10px",
-				}}
+			{/* Ground ring to anchor */}
+			<mesh
+				rotation={[-Math.PI / 2, 0, 0]}
+				position={[0, -0.01, 0]}
+				receiveShadow
 			>
-				{labelContent}
-				{hovered && tooltip && (
-					<div
-						style={{
-							background: "rgba(0,0,0,0.85)",
-							color: "#fff",
-							borderRadius: 6,
-							padding: "4px 10px",
-							fontSize: 13,
-							marginTop: 6,
-							whiteSpace: "pre-line",
-							boxShadow: "0 2px 8px #0008",
-							zIndex: 100,
-							position: "absolute",
-							left: "50%",
-							transform: "translateX(-50%)",
-							pointerEvents: "auto",
-						}}
-					>
-						{tooltip}
-					</div>
-				)}
-			</Html>
+				<ringGeometry args={[0.4, 0.65, 32]} />
+				<meshBasicMaterial
+					transparent
+					opacity={hovered ? 0.22 : 0.12}
+				/>
+			</mesh>
+			{/* Billboard label */}
+			<Text
+				position={[0, 1.2, 0]}
+				fontSize={0.18 * df}
+				color="#ffffff"
+				anchorX="center"
+				anchorY="bottom"
+				outlineWidth={0.008}
+				outlineColor="rgba(0,0,0,0.75)"
+				maxWidth={2.4}
+				billboard
+			>
+				{String(labelContent)}
+			</Text>
 			{/* Recursively render children as sub-groups */}
 			{entity.children?.map((child, idx) => (
 				<Pin
