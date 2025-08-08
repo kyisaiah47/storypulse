@@ -90,6 +90,7 @@ type Entity = {
 	position?: [number, number, number];
 	rotation?: [number, number, number];
 	scale?: [number, number, number];
+	children?: Entity[];
 };
 
 type PinProps = {
@@ -513,6 +514,16 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 			>
 				{label}
 			</Html>
+			{/* Recursively render children as sub-groups */}
+			{entity.children?.map((child, idx) => (
+				<Pin
+					key={idx}
+					position={child.position ?? [0, 0, 0]}
+					entity={child}
+					type={type}
+					onClick={onClick}
+				/>
+			))}
 		</group>
 	);
 }
