@@ -305,7 +305,7 @@ export default function Page() {
 			</div>
 
 			{/* Top Navigation */}
-			<div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-4 z-20 bg-black/30 backdrop-blur-md border-b border-white/10">
+			<div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-4 z-20 backdrop-blur-md">
 				<h1 className="text-white font-extrabold tracking-tight text-2xl">
 					StoryPulse
 				</h1>
