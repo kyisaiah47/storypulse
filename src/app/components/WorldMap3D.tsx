@@ -66,6 +66,14 @@ type CapsuleGeometryArgs = [
 type EntityOnClick = string | { action: string; [key: string]: unknown };
 type EntityOnHover = string | { tooltip: string; [key: string]: unknown };
 
+type LightProps = {
+	type: "point" | "spot" | "directional" | "ambient";
+	color?: string;
+	intensity?: number;
+	position?: [number, number, number];
+	[key: string]: unknown;
+};
+
 type GeometryArgs =
 	| BoxGeometryArgs
 	| ConeGeometryArgs
@@ -105,6 +113,7 @@ type Entity = {
 	animation?: AnimationProps;
 	onClick?: EntityOnClick;
 	onHover?: EntityOnHover;
+	lights?: LightProps[];
 	children?: Entity[];
 };
 
@@ -537,6 +546,29 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 		tooltip = entity.onHover.tooltip;
 	}
 
+	// Render lights for this entity
+	const renderLights = () =>
+		entity.lights?.map((light, idx) => {
+			const common = {
+				key: idx,
+				color: light.color,
+				intensity: light.intensity,
+				position: light.position,
+			};
+			switch (light.type) {
+				case "point":
+					return <pointLight {...common} />;
+				case "spot":
+					return <spotLight {...common} />;
+				case "directional":
+					return <directionalLight {...common} />;
+				case "ambient":
+					return <ambientLight {...common} />;
+				default:
+					return null;
+			}
+		});
+
 	return (
 		<group
 			position={entity.position ?? position}
@@ -546,6 +578,7 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 			onPointerOver={() => setHovered(true)}
 			onPointerOut={() => setHovered(false)}
 		>
+			{renderLights()}
 			<mesh
 				ref={ref}
 				castShadow
