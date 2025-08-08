@@ -5,12 +5,12 @@ import { Html, OrbitControls, AdaptiveDpr, Preload } from "@react-three/drei";
 import * as THREE from "three";
 import type { WorldState } from "../hooks/useWorldState";
 
-type Entity = { 
-	name?: string; 
-	description?: string; 
-	shape?: string; 
-	color?: string; 
-	size?: string; 
+type Entity = {
+	name?: string;
+	description?: string;
+	shape?: string;
+	color?: string;
+	size?: string;
 };
 
 type PinProps = {
@@ -36,60 +36,247 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 	});
 
 	const getGeometryFromShape = (shape?: string, size?: string) => {
-		const sizeMultiplier = size === "large" ? 1.4 : size === "small" ? 0.7 : 1.0;
-		
+		const sizeMultiplier =
+			size === "large" ? 1.4 : size === "small" ? 0.7 : 1.0;
 		switch (shape) {
-			case "tree":
-				return <coneGeometry args={[0.6 * sizeMultiplier, 1.6 * sizeMultiplier, 8]} />;
-			case "tower":
-				return <cylinderGeometry args={[0.3 * sizeMultiplier, 0.5 * sizeMultiplier, 2.0 * sizeMultiplier, 8]} />;
+			// Story locations
+			case "castle":
+				return (
+					<boxGeometry
+						args={[
+							1.2 * sizeMultiplier,
+							1.2 * sizeMultiplier,
+							1.2 * sizeMultiplier,
+						]}
+					/>
+				);
+			case "forest":
+				return (
+					<coneGeometry
+						args={[1.0 * sizeMultiplier, 2.0 * sizeMultiplier, 12]}
+					/>
+				);
 			case "village":
-				return <boxGeometry args={[1.2 * sizeMultiplier, 0.8 * sizeMultiplier, 1.2 * sizeMultiplier]} />;
+				return (
+					<boxGeometry
+						args={[
+							1.0 * sizeMultiplier,
+							0.7 * sizeMultiplier,
+							1.0 * sizeMultiplier,
+						]}
+					/>
+				);
 			case "cave":
-				return <sphereGeometry args={[0.8 * sizeMultiplier, 8, 6]} />;
-			case "water":
-				return <cylinderGeometry args={[1.0 * sizeMultiplier, 1.0 * sizeMultiplier, 0.2, 12]} />;
+				return <sphereGeometry args={[0.8 * sizeMultiplier, 10, 8]} />;
+			case "temple":
+				return (
+					<cylinderGeometry
+						args={[
+							0.7 * sizeMultiplier,
+							0.7 * sizeMultiplier,
+							1.2 * sizeMultiplier,
+							16,
+						]}
+					/>
+				);
+			case "ruins":
+				return <dodecahedronGeometry args={[0.7 * sizeMultiplier, 0]} />;
+			case "mountain":
+				return (
+					<coneGeometry
+						args={[1.2 * sizeMultiplier, 2.5 * sizeMultiplier, 8]}
+					/>
+				);
+			case "lake":
+				return (
+					<cylinderGeometry
+						args={[
+							1.2 * sizeMultiplier,
+							1.2 * sizeMultiplier,
+							0.2 * sizeMultiplier,
+							18,
+						]}
+					/>
+				);
+			// Old mappings for backward compatibility
+			case "tree":
+				return (
+					<coneGeometry
+						args={[0.6 * sizeMultiplier, 1.6 * sizeMultiplier, 8]}
+					/>
+				);
+			case "tower":
+				return (
+					<cylinderGeometry
+						args={[
+							0.3 * sizeMultiplier,
+							0.5 * sizeMultiplier,
+							2.0 * sizeMultiplier,
+							8,
+						]}
+					/>
+				);
+			// Characters and items (unchanged)
 			case "warrior":
-				return <capsuleGeometry args={[0.4 * sizeMultiplier, 1.2 * sizeMultiplier, 4, 8]} />;
+				return (
+					<capsuleGeometry
+						args={[0.4 * sizeMultiplier, 1.2 * sizeMultiplier, 4, 8]}
+					/>
+				);
 			case "mage":
-				return <coneGeometry args={[0.6 * sizeMultiplier, 1.8 * sizeMultiplier, 6]} />;
+				return (
+					<coneGeometry
+						args={[0.6 * sizeMultiplier, 1.8 * sizeMultiplier, 6]}
+					/>
+				);
 			case "sprite":
 				return <octahedronGeometry args={[0.5 * sizeMultiplier, 0]} />;
 			case "humanoid":
-				return <capsuleGeometry args={[0.3 * sizeMultiplier, 1.0 * sizeMultiplier, 4, 8]} />;
+				return (
+					<capsuleGeometry
+						args={[0.3 * sizeMultiplier, 1.0 * sizeMultiplier, 4, 8]}
+					/>
+				);
 			case "dragon":
 				return <dodecahedronGeometry args={[0.9 * sizeMultiplier, 0]} />;
 			case "sword":
-				return <boxGeometry args={[0.1 * sizeMultiplier, 1.2 * sizeMultiplier, 0.1 * sizeMultiplier]} />;
+				return (
+					<boxGeometry
+						args={[
+							0.1 * sizeMultiplier,
+							1.2 * sizeMultiplier,
+							0.1 * sizeMultiplier,
+						]}
+					/>
+				);
 			case "potion":
-				return <cylinderGeometry args={[0.2 * sizeMultiplier, 0.3 * sizeMultiplier, 0.8 * sizeMultiplier, 8]} />;
+				return (
+					<cylinderGeometry
+						args={[
+							0.2 * sizeMultiplier,
+							0.3 * sizeMultiplier,
+							0.8 * sizeMultiplier,
+							8,
+						]}
+					/>
+				);
 			case "gem":
 				return <octahedronGeometry args={[0.4 * sizeMultiplier, 1]} />;
 			case "scroll":
-				return <cylinderGeometry args={[0.1 * sizeMultiplier, 0.1 * sizeMultiplier, 0.8 * sizeMultiplier, 8]} />;
+				return (
+					<cylinderGeometry
+						args={[
+							0.1 * sizeMultiplier,
+							0.1 * sizeMultiplier,
+							0.8 * sizeMultiplier,
+							8,
+						]}
+					/>
+				);
 			// Fallback based on type
 			case undefined:
 			default:
-				if (type === "location") return <octahedronGeometry args={[0.8 * sizeMultiplier, 0]} />;
-				if (type === "character") return <coneGeometry args={[0.5 * sizeMultiplier, 1.4 * sizeMultiplier, 8]} />;
-				if (type === "item") return <boxGeometry args={[0.7 * sizeMultiplier, 0.7 * sizeMultiplier, 0.7 * sizeMultiplier]} />;
+				if (type === "location")
+					return <octahedronGeometry args={[0.8 * sizeMultiplier, 0]} />;
+				if (type === "character")
+					return (
+						<coneGeometry
+							args={[0.5 * sizeMultiplier, 1.4 * sizeMultiplier, 8]}
+						/>
+					);
+				if (type === "item")
+					return (
+						<boxGeometry
+							args={[
+								0.7 * sizeMultiplier,
+								0.7 * sizeMultiplier,
+								0.7 * sizeMultiplier,
+							]}
+						/>
+					);
 				return <sphereGeometry args={[0.6 * sizeMultiplier, 16, 16]} />;
 		}
 	};
 
 	const getMaterial = () => {
-		const color = entity.color || (type === "location" ? "#f59e42" : type === "character" ? "#3b82f6" : "#10b981");
+		// Storyful color palette for locations
+		let color = entity.color;
+		if (!color && type === "location") {
+			switch (entity.shape) {
+				case "castle":
+					color = "#b0a99f";
+					break; // stone gray
+				case "forest":
+					color = "#228B22";
+					break; // forest green
+				case "village":
+					color = "#e2c290";
+					break; // thatch yellow
+				case "cave":
+					color = "#444444";
+					break; // dark gray
+				case "temple":
+					color = "#d4cfc9";
+					break; // marble
+				case "ruins":
+					color = "#8a7f7f";
+					break; // old stone
+				case "mountain":
+					color = "#888888";
+					break; // mountain gray
+				case "lake":
+					color = "#3fa7d6";
+					break; // blue
+				default:
+					color = "#f59e42"; // fallback orange
+			}
+		}
+		if (!color && type === "character") color = "#3b82f6";
+		if (!color && type === "item") color = "#10b981";
 		const baseProps = { color };
-		
 		switch (entity.shape) {
-			case "water":
+			case "lake":
 				return (
 					<meshStandardMaterial
 						{...baseProps}
 						transparent
-						opacity={0.8}
-						roughness={0.1}
+						opacity={0.7}
+						roughness={0.15}
 						metalness={0.1}
+					/>
+				);
+			case "forest":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						roughness={0.7}
+						metalness={0.05}
+					/>
+				);
+			case "castle":
+			case "temple":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						metalness={0.4}
+						roughness={0.3}
+					/>
+				);
+			case "ruins":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						metalness={0.2}
+						roughness={0.6}
+					/>
+				);
+			case "cave":
+			case "mountain":
+				return (
+					<meshStandardMaterial
+						{...baseProps}
+						roughness={0.8}
+						metalness={0.05}
 					/>
 				);
 			case "gem":
@@ -146,8 +333,20 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 		}
 	};
 
-	const label = entity.name || (type === "location" ? "Location" : type === "character" ? "Character" : "Item");
-	const color = entity.color || (type === "location" ? "#f59e42" : type === "character" ? "#3b82f6" : "#10b981");
+	const label =
+		entity.name ||
+		(type === "location"
+			? "Location"
+			: type === "character"
+			? "Character"
+			: "Item");
+	const color =
+		entity.color ||
+		(type === "location"
+			? "#f59e42"
+			: type === "character"
+			? "#3b82f6"
+			: "#10b981");
 
 	return (
 		<group

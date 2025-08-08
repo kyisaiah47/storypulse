@@ -146,35 +146,39 @@ export default function Page() {
 				description: "A mystical forest full of secrets and ancient trees.",
 				shape: "tree",
 				color: "#228B22",
-				size: "large"
+				size: "large",
 			},
 			{
 				name: "Crystal Lake",
-				description: "A shimmering lake with magical properties and hidden depths.",
+				description:
+					"A shimmering lake with magical properties and hidden depths.",
 				shape: "water",
 				color: "#4682B4",
-				size: "medium"
+				size: "medium",
 			},
 			{
 				name: "Sunspire Village",
-				description: "A bustling village at the edge of the forest, home to many adventurers.",
+				description:
+					"A bustling village at the edge of the forest, home to many adventurers.",
 				shape: "village",
 				color: "#DEB887",
-				size: "medium"
+				size: "medium",
 			},
 			{
 				name: "Obsidian Tower",
-				description: "A dark, looming tower said to be the lair of a forgotten sorcerer.",
+				description:
+					"A dark, looming tower said to be the lair of a forgotten sorcerer.",
 				shape: "tower",
 				color: "#2F2F2F",
-				size: "large"
+				size: "large",
 			},
 			{
 				name: "Whispering Caves",
-				description: "A network of caves that echo with the voices of the past.",
+				description:
+					"A network of caves that echo with the voices of the past.",
 				shape: "cave",
 				color: "#696969",
-				size: "medium"
+				size: "medium",
 			},
 		],
 		characters: [
@@ -183,35 +187,36 @@ export default function Page() {
 				description: "A wise elf guardian who protects the forest.",
 				shape: "humanoid",
 				color: "#98FB98",
-				size: "medium"
+				size: "medium",
 			},
 			{
 				name: "Tharn",
 				description: "A wandering warrior seeking redemption.",
 				shape: "warrior",
 				color: "#B22222",
-				size: "large"
+				size: "large",
 			},
 			{
 				name: "Mira",
 				description: "A curious inventor from Sunspire Village.",
 				shape: "humanoid",
 				color: "#FFB6C1",
-				size: "small"
+				size: "small",
 			},
 			{
 				name: "The Shadow Mage",
-				description: "A mysterious figure rumored to dwell in the Obsidian Tower.",
+				description:
+					"A mysterious figure rumored to dwell in the Obsidian Tower.",
 				shape: "mage",
 				color: "#483D8B",
-				size: "medium"
+				size: "medium",
 			},
 			{
 				name: "Glim",
 				description: "A mischievous sprite who knows every secret path.",
 				shape: "sprite",
 				color: "#FFD700",
-				size: "small"
+				size: "small",
 			},
 		],
 		items: [
@@ -220,35 +225,35 @@ export default function Page() {
 				description: "A blade with runes of power, lost for centuries.",
 				shape: "sword",
 				color: "#C0C0C0",
-				size: "medium"
+				size: "medium",
 			},
 			{
 				name: "Healing Potion",
 				description: "Restores health instantly, brewed from rare herbs.",
 				shape: "potion",
 				color: "#FF69B4",
-				size: "small"
+				size: "small",
 			},
 			{
 				name: "Crystal Amulet",
 				description: "Said to protect the wearer from dark magic.",
 				shape: "gem",
 				color: "#00CED1",
-				size: "small"
+				size: "small",
 			},
 			{
 				name: "Map of the Caves",
 				description: "Shows hidden passages in the Whispering Caves.",
 				shape: "scroll",
 				color: "#F4A460",
-				size: "medium"
+				size: "medium",
 			},
 			{
 				name: "Sunstone",
 				description: "A gem that glows with the light of a summer day.",
 				shape: "gem",
 				color: "#FFA500",
-				size: "small"
+				size: "small",
 			},
 		],
 		events: [
