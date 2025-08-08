@@ -11,6 +11,8 @@ type Entity = {
 	shape?: string;
 	color?: string;
 	size?: string;
+	geometry?: string; // e.g. "boxGeometry", "coneGeometry", etc.
+	args?: any[]; // geometry args array
 };
 
 type PinProps = {
@@ -21,6 +23,31 @@ type PinProps = {
 };
 
 function Pin({ position, entity, type, onClick }: PinProps) {
+	// Allow AI to specify geometry and args directly
+	const getGeometry = () => {
+		if (entity.geometry && Array.isArray(entity.args)) {
+			switch (entity.geometry) {
+				case "boxGeometry":
+					return <boxGeometry args={entity.args} />;
+				case "coneGeometry":
+					return <coneGeometry args={entity.args} />;
+				case "cylinderGeometry":
+					return <cylinderGeometry args={entity.args} />;
+				case "sphereGeometry":
+					return <sphereGeometry args={entity.args} />;
+				case "octahedronGeometry":
+					return <octahedronGeometry args={entity.args} />;
+				case "dodecahedronGeometry":
+					return <dodecahedronGeometry args={entity.args} />;
+				case "capsuleGeometry":
+					return <capsuleGeometry args={entity.args} />;
+				default:
+					return null;
+			}
+		}
+		// Fallback to shape/size logic
+		return getGeometryFromShape(entity.shape, entity.size);
+	};
 	const ref = useRef<THREE.Mesh>(null!);
 	// Randomized phase so pins don't bounce in unison
 	const phase = useMemo(() => Math.random() * Math.PI * 2, []);
@@ -358,7 +385,7 @@ function Pin({ position, entity, type, onClick }: PinProps) {
 				castShadow
 				receiveShadow
 			>
-				{getGeometryFromShape(entity.shape, entity.size)}
+				{getGeometry()}
 				{getMaterial()}
 			</mesh>
 			{/* Add a subtle glow effect for atmosphere */}
