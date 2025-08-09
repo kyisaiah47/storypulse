@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
 	OrbitControls,
@@ -31,33 +31,103 @@ export default function WorldMap3D({
 		description: string;
 	} | null>(null);
 
-	const safeArr = (arr: unknown): Entity[] => (Array.isArray(arr) ? arr : []);
-	const locations: Entity[] = safeArr(world.locations);
-	const characters: Entity[] = safeArr(world.characters);
-	const items: Entity[] = safeArr(world.items);
+	const safeArr = (arr: unknown): Entity[] =>
+		Array.isArray(arr) ? (arr as Entity[]) : [];
+	const locations = safeArr(world.locations);
+	const characters = safeArr(world.characters);
+	const items = safeArr(world.items);
 
-	// Enhanced layout: more natural positioning with randomization
-	const pinPositions = (
-		arr: Entity[],
+	// ---------- stable IDs & seeded positions ----------
+	const getId = (e: any, kind: string) => {
+		if (e?.id && typeof e.id === "string") return e.id;
+		// fallback: stable hash from kind+name
+		return `${kind}:${hashString(String(e?.name ?? "Untitled"))}`;
+	};
+
+	function hashString(s: string) {
+		// simple 32-bit FNV-1a
+		let h = 0x811c9dc5;
+		for (let i = 0; i < s.length; i++) {
+			h ^= s.charCodeAt(i);
+			h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+		}
+		return h >>> 0; // unsigned
+	}
+
+	function mulberry32(seed: number) {
+		return function () {
+			let t = (seed += 0x6d2b79f5);
+			t = Math.imul(t ^ (t >>> 15), t | 1);
+			t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+			return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+		};
+	}
+
+	function positionFor(
+		id: string,
+		index: number,
+		total: number,
 		baseRadius: number,
 		yLevel: number,
 		spread = 1
-	) => {
-		if (arr.length === 0) return [];
+	) {
+		const rand = mulberry32(hashString(id));
+		const angleJitter = (rand() - 0.5) * (Math.PI / 6); // ±30°
+		const angle = (index / Math.max(1, total)) * Math.PI * 2 + angleJitter;
+		const radius = baseRadius + (rand() - 0.5) * spread * 3;
+		const x = Math.cos(angle) * radius + (rand() - 0.5) * 1.5;
+		const z = Math.sin(angle) * radius + (rand() - 0.5) * 1.5;
+		const y = yLevel + (rand() - 0.5) * 0.4;
+		return [x, y, z] as [number, number, number];
+	}
 
-		return arr.map((_, i) => {
-			const angle = (i / arr.length) * 2 * Math.PI;
-			const radius = baseRadius + (Math.random() - 0.5) * spread * 3;
-			const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 2;
-			const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 2;
-			const y = yLevel + (Math.random() - 0.5) * 0.5;
-			return [x, y, z] as [number, number, number];
+	// Ensure uniqueness by appending an occurrence suffix for dupes
+	function dedupe(ids: string[]) {
+		const counts = new Map<string, number>();
+		return ids.map((id) => {
+			const n = (counts.get(id) ?? 0) + 1;
+			counts.set(id, n);
+			return n === 1 ? id : `${id}#${n}`; // e.g., "char:1094835550#2"
 		});
-	};
+	}
 
-	const locPositions = pinPositions(locations, 14.5, 0.8, 2.4);
-	const charPositions = pinPositions(characters, 10.5, 1.1, 1.8);
-	const itemPositions = pinPositions(items, 6.5, 0.5, 1.3);
+	// Build base ids (prefer entity.id, else fallback hash)
+	const baseLocIds = useMemo(
+		() => locations.map((e) => getId(e, "loc")),
+		[locations]
+	);
+	const baseCharIds = useMemo(
+		() => characters.map((e) => getId(e, "char")),
+		[characters]
+	);
+	const baseItemIds = useMemo(
+		() => items.map((e) => getId(e, "item")),
+		[items]
+	);
+
+	// De-duplicate so keys are unique even if names/ids collide
+	const locIds = useMemo(() => dedupe(baseLocIds), [baseLocIds]);
+	const charIds = useMemo(() => dedupe(baseCharIds), [baseCharIds]);
+	const itemIds = useMemo(() => dedupe(baseItemIds), [baseItemIds]);
+
+	// Positions seeded by the (de-duped) id — stable across renders
+	const locPositions = useMemo(
+		() =>
+			locIds.map((id, i) => positionFor(id, i, locIds.length, 14.5, 0.8, 2.4)),
+		[locIds]
+	);
+	const charPositions = useMemo(
+		() =>
+			charIds.map((id, i) =>
+				positionFor(id, i, charIds.length, 10.5, 1.1, 1.8)
+			),
+		[charIds]
+	);
+	const itemPositions = useMemo(
+		() =>
+			itemIds.map((id, i) => positionFor(id, i, itemIds.length, 6.5, 0.5, 1.3)),
+		[itemIds]
+	);
 
 	return (
 		<div className="w-full h-screen bg-black relative">
@@ -102,7 +172,7 @@ export default function WorldMap3D({
 					shadow-camera-far={60}
 				/>
 
-				{/* Ground: soft sand tone */}
+				{/* Ground */}
 				<mesh
 					rotation={[-Math.PI / 2, 0, 0]}
 					receiveShadow
@@ -115,7 +185,7 @@ export default function WorldMap3D({
 					/>
 				</mesh>
 
-				{/* Soft contact shadows to anchor objects */}
+				{/* Contact shadows */}
 				<ContactShadows
 					position={[0, 0.01, 0]}
 					opacity={0.33}
@@ -126,49 +196,58 @@ export default function WorldMap3D({
 					frames={1}
 				/>
 
-				{/* Pins … (unchanged) */}
-				{locations.map((loc, i) => (
-					<Pin
-						key={`loc-${i}`}
-						position={locPositions[i]}
-						entity={loc}
-						type="location"
-						onClick={() =>
-							setSelected({
-								label: loc.name || "Location",
-								description: loc.description || "",
-							})
-						}
-					/>
-				))}
-				{characters.map((char, i) => (
-					<Pin
-						key={`char-${i}`}
-						position={charPositions[i]}
-						entity={char}
-						type="character"
-						onClick={() =>
-							setSelected({
-								label: char.name || "Character",
-								description: char.description || "",
-							})
-						}
-					/>
-				))}
-				{items.map((item, i) => (
-					<Pin
-						key={`item-${i}`}
-						position={itemPositions[i]}
-						entity={item}
-						type="item"
-						onClick={() =>
-							setSelected({
-								label: item.name || "Item",
-								description: item.description || "",
-							})
-						}
-					/>
-				))}
+				{/* Pins with STABLE keys + positions */}
+				{locations.map((loc, i) => {
+					const id = locIds[i];
+					return (
+						<Pin
+							key={id}
+							position={locPositions[i]}
+							entity={loc}
+							type="location"
+							onClick={() =>
+								setSelected({
+									label: loc.name || "Location",
+									description: loc.description || "",
+								})
+							}
+						/>
+					);
+				})}
+				{characters.map((char, i) => {
+					const id = charIds[i];
+					return (
+						<Pin
+							key={id}
+							position={charPositions[i]}
+							entity={char}
+							type="character"
+							onClick={() =>
+								setSelected({
+									label: char.name || "Character",
+									description: char.description || "",
+								})
+							}
+						/>
+					);
+				})}
+				{items.map((item, i) => {
+					const id = itemIds[i];
+					return (
+						<Pin
+							key={id}
+							position={itemPositions[i]}
+							entity={item}
+							type="item"
+							onClick={() =>
+								setSelected({
+									label: item.name || "Item",
+									description: item.description || "",
+								})
+							}
+						/>
+					);
+				})}
 
 				<OrbitControls
 					makeDefault
