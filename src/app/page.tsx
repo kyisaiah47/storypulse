@@ -69,7 +69,6 @@ export default function Page() {
 		WorldState,
 		React.Dispatch<React.SetStateAction<WorldState>>
 	];
-	const [mode, setMode] = useState("education");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [storyLog, setStoryLog] = useState<
@@ -188,17 +187,10 @@ export default function Page() {
 			</div>
 
 			{/* Top Navigation */}
-			<div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-4 z-20 backdrop-blur-md">
+			<div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-4 z-20 ">
 				<h1 className="text-white font-extrabold tracking-tight text-2xl">
 					StoryPulse
 				</h1>
-				<div className="flex items-center gap-4">
-					<span className="text-white text-sm">Mode:</span>
-					<ModeToggle
-						mode={mode}
-						setMode={setMode}
-					/>
-				</div>
 			</div>
 
 			{/* Story Log Panel */}
