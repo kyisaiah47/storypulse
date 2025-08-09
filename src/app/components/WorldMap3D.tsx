@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import * as THREE from "three"; // ⬅️ add this
 import { Canvas } from "@react-three/fiber";
 import {
 	OrbitControls,
@@ -38,20 +39,18 @@ export default function WorldMap3D({
 	const items = safeArr(world.items);
 
 	// ---------- stable IDs & seeded positions ----------
-	const getId = (e: any, kind: string) => {
-		if (e?.id && typeof e.id === "string") return e.id;
-		// fallback: stable hash from kind+name
-		return `${kind}:${hashString(String(e?.name ?? "Untitled"))}`;
-	};
+	const getId = (e: any, kind: string) =>
+		e?.id && typeof e.id === "string"
+			? e.id
+			: `${kind}:${hashString(String(e?.name ?? "Untitled"))}`;
 
 	function hashString(s: string) {
-		// simple 32-bit FNV-1a
 		let h = 0x811c9dc5;
 		for (let i = 0; i < s.length; i++) {
 			h ^= s.charCodeAt(i);
 			h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
 		}
-		return h >>> 0; // unsigned
+		return h >>> 0;
 	}
 
 	function mulberry32(seed: number) {
@@ -72,7 +71,7 @@ export default function WorldMap3D({
 		spread = 1
 	) {
 		const rand = mulberry32(hashString(id));
-		const angleJitter = (rand() - 0.5) * (Math.PI / 6); // ±30°
+		const angleJitter = (rand() - 0.5) * (Math.PI / 6);
 		const angle = (index / Math.max(1, total)) * Math.PI * 2 + angleJitter;
 		const radius = baseRadius + (rand() - 0.5) * spread * 3;
 		const x = Math.cos(angle) * radius + (rand() - 0.5) * 1.5;
@@ -81,17 +80,15 @@ export default function WorldMap3D({
 		return [x, y, z] as [number, number, number];
 	}
 
-	// Ensure uniqueness by appending an occurrence suffix for dupes
 	function dedupe(ids: string[]) {
 		const counts = new Map<string, number>();
 		return ids.map((id) => {
 			const n = (counts.get(id) ?? 0) + 1;
 			counts.set(id, n);
-			return n === 1 ? id : `${id}#${n}`; // e.g., "char:1094835550#2"
+			return n === 1 ? id : `${id}#${n}`;
 		});
 	}
 
-	// Build base ids (prefer entity.id, else fallback hash)
 	const baseLocIds = useMemo(
 		() => locations.map((e) => getId(e, "loc")),
 		[locations]
@@ -105,12 +102,10 @@ export default function WorldMap3D({
 		[items]
 	);
 
-	// De-duplicate so keys are unique even if names/ids collide
 	const locIds = useMemo(() => dedupe(baseLocIds), [baseLocIds]);
 	const charIds = useMemo(() => dedupe(baseCharIds), [baseCharIds]);
 	const itemIds = useMemo(() => dedupe(baseItemIds), [baseItemIds]);
 
-	// Positions seeded by the (de-duped) id — stable across renders
 	const locPositions = useMemo(
 		() =>
 			locIds.map((id, i) => positionFor(id, i, locIds.length, 14.5, 0.8, 2.4)),
@@ -196,7 +191,7 @@ export default function WorldMap3D({
 					frames={1}
 				/>
 
-				{/* Pins with STABLE keys + positions */}
+				{/* Pins */}
 				{locations.map((loc, i) => {
 					const id = locIds[i];
 					return (
@@ -249,15 +244,30 @@ export default function WorldMap3D({
 					);
 				})}
 
+				{/* 👉 Drag to PAN, right-drag to rotate */}
 				<OrbitControls
 					makeDefault
 					target={[0, 1.2, 0]}
+					enableDamping
+					dampingFactor={0.08}
+					enablePan
+					panSpeed={0.9}
+					screenSpacePanning
 					minPolarAngle={0.55}
 					maxPolarAngle={1.35}
 					minDistance={6}
 					maxDistance={22}
-					enableDamping
-					dampingFactor={0.08}
+					zoomSpeed={0.9}
+					rotateSpeed={0.9}
+					mouseButtons={{
+						LEFT: THREE.MOUSE.PAN,
+						MIDDLE: THREE.MOUSE.DOLLY,
+						RIGHT: THREE.MOUSE.ROTATE,
+					}}
+					touches={{
+						ONE: THREE.TOUCH.PAN,
+						TWO: THREE.TOUCH.DOLLY_ROTATE,
+					}}
 				/>
 				<AdaptiveDpr pixelated />
 				<Preload all />
