@@ -84,9 +84,12 @@ function sanitize(elements: any): StoryElements {
 				0,
 				60
 			);
-			const description = (
+			let description = (
 				nonEmpty(e?.description) ? String(e.description) : "No description."
 			).slice(0, 500);
+			// optional tiny clean-up: hide blatant placeholders returned by stubborn models
+			if (/^\s*(no description\.?|n\/a|unknown)\s*$/i.test(description))
+				description = "";
 			const shape = validShape(e?.shape) ? e.shape : DEFAULT_SHAPE[kind];
 			const color = isHex(e?.color)
 				? e.color
@@ -109,7 +112,6 @@ function sanitize(elements: any): StoryElements {
 }
 
 function stripCodeFences(s: string) {
-	// removes ```json ... ``` or ``` ... ```
 	return s.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, "$1").trim();
 }
 
@@ -141,12 +143,10 @@ function extractFirstJsonObject(s: string | undefined | null): any | null {
 
 // Model heuristics
 function isStubbornModel(model: string) {
-	return /gpt-oss/i.test(model); // treat all gpt-oss as stubborn
+	return /gpt-oss/i.test(model);
 }
 
-// Models that reliably obey JSON gates (OpenAI-compatible response_format)
 function isJsonFriendlyModel(model: string) {
-	// exclude gpt-oss; include smaller well-behaved families
 	return (
 		!isStubbornModel(model) &&
 		/(llama\s*3|llama3|llama:|qwen|phi|mistral:7b|llava)/i.test(model)
@@ -179,19 +179,23 @@ export async function generateStoryElements({
 		`(tree|tower|cave|village|water|humanoid|warrior|mage|sprite|sword|potion|gem|scroll|dragon), ` +
 		`color ("#RRGGBB"), size ("small"|"medium"|"large").`;
 
+	// ---- NEW: stricter, descriptive instructions ----
+	const styleRules =
+		`Descriptions: write 1–2 concise sentences (≈12–40 words), vivid but not florid. ` +
+		`Do NOT use placeholders like "No description.", "N/A", or "unknown". ` +
+		`Prefer distinct colors across objects.`;
+
 	const baseSystem =
 		`You output ONLY a single JSON object. No prose, no code fences, no comments, ` +
 		`and no keys named thinking or reasoning. ${schemaLine} ` +
-		`Return exactly 1 location, 1 character, 1 item, 1 event.`;
+		`Return exactly 1 location, 1 character, 1 item, 1 event. ${styleRules}`;
 
-	// Messages differ slightly for stubborn models (few-shot + brace seed)
+	// Few-shot for stubborn models; example uses real descriptions
 	const messages = stubborn
 		? ([
 				{
 					role: "system",
-					content:
-						baseSystem +
-						" Every field must be present and non-empty. If unsure, choose a plausible allowed value. Do not omit or leave any field blank.",
+					content: baseSystem + " Every field must be present and non-empty.",
 				},
 				{
 					role: "user",
@@ -200,7 +204,7 @@ export async function generateStoryElements({
 				{
 					role: "assistant",
 					content:
-						'{"locations":[{"name":"Test Tower","description":"Stub.","shape":"tower","color":"#112233","size":"small"}],"characters":[{"name":"Test Keeper","description":"Stub.","shape":"humanoid","color":"#445566","size":"medium"}],"items":[{"name":"Test Prism","description":"Stub.","shape":"gem","color":"#778899","size":"small"}],"events":[{"name":"Test Reveal","description":"Stub.","shape":"scroll","color":"#AABBCC","size":"small"}]}',
+						'{"locations":[{"name":"Test Tower","description":"A wind-scoured watchtower where rusted bells mark the passing of dust storms.","shape":"tower","color":"#112233","size":"small"}],"characters":[{"name":"Test Keeper","description":"A patient watcher who knows every star’s rise and the secrets of approaching weather.","shape":"humanoid","color":"#445566","size":"medium"}],"items":[{"name":"Test Prism","description":"A thumb-sized crystal that splits moonlight into symbols only the trained can read.","shape":"gem","color":"#778899","size":"small"}],"events":[{"name":"Test Reveal","description":"At midnight the prism projects a hidden map onto the tower’s inner wall.","shape":"scroll","color":"#AABBCC","size":"small"}]}',
 				},
 				{
 					role: "user",
@@ -214,9 +218,7 @@ export async function generateStoryElements({
 		: ([
 				{
 					role: "system",
-					content:
-						baseSystem +
-						" Every field must be present and non-empty. If unsure, choose a plausible allowed value.",
+					content: baseSystem + " Every field must be present and non-empty.",
 				},
 				{
 					role: "user",
@@ -236,9 +238,7 @@ export async function generateStoryElements({
 		stream: false,
 	};
 
-	// Ask server to enforce JSON only when the model tends to honor it
-	if (jsonFriendly) body.format = "json"; // server maps to response_format or native format
-	// Stubborn models rely on the example + brace seed, and our extractor
+	if (jsonFriendly) body.format = "json";
 
 	const response = await fetch("http://localhost:4000/api/chat", {
 		method: "POST",
