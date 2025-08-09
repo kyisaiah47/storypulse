@@ -39,9 +39,10 @@ const SHAPES = [
 ] as const;
 
 type Kind = keyof StoryElements;
+type Shape = (typeof SHAPES)[number];
 
 // sensible defaults per kind if shape is missing/invalid
-const DEFAULT_SHAPE: Record<Kind, (typeof SHAPES)[number]> = {
+const DEFAULT_SHAPE: Record<Kind, Shape> = {
 	locations: "cave",
 	characters: "humanoid",
 	items: "gem",
@@ -74,7 +75,7 @@ function sanitize(elements: any): StoryElements {
 	const isHex = (s: any) =>
 		typeof s === "string" && /^#[0-9A-Fa-f]{6}$/.test(s);
 	const nonEmpty = (s: any) => typeof s === "string" && s.trim().length > 0;
-	const validShape = (s: any) =>
+	const validShape = (s: any): s is Shape =>
 		typeof s === "string" && (SHAPES as readonly string[]).includes(s);
 
 	const coerce = (list: any[], kind: Kind): Element[] =>
@@ -107,8 +108,14 @@ function sanitize(elements: any): StoryElements {
 	};
 }
 
+function stripCodeFences(s: string) {
+	// removes ```json ... ``` or ``` ... ```
+	return s.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, "$1").trim();
+}
+
 function extractFirstJsonObject(s: string | undefined | null): any | null {
 	if (!s) return null;
+	s = stripCodeFences(s);
 	const start = s.indexOf("{");
 	if (start === -1) return null;
 	let depth = 0,
@@ -132,10 +139,18 @@ function extractFirstJsonObject(s: string | undefined | null): any | null {
 	}
 }
 
+// Model heuristics
+function isStubbornModel(model: string) {
+	return /gpt-oss/i.test(model); // treat all gpt-oss as stubborn
+}
+
 // Models that reliably obey JSON gates (OpenAI-compatible response_format)
 function isJsonFriendlyModel(model: string) {
 	// exclude gpt-oss; include smaller well-behaved families
-	return /(llama\s*3|llama3|llama:|qwen|phi|mistral:7b|llava)/i.test(model);
+	return (
+		!isStubbornModel(model) &&
+		/(llama\s*3|llama3|llama:|qwen|phi|mistral:7b|llava)/i.test(model)
+	);
 }
 
 // ---------- main ----------
@@ -155,10 +170,11 @@ export async function generateStoryElements({
 	model?: string;
 }): Promise<StoryElements> {
 	const worldBrief = summarizeWorld(world);
+	const stubborn = isStubbornModel(model);
 	const jsonFriendly = isJsonFriendlyModel(model);
 
 	const schemaLine =
-		`Schema: {"locations":[],"characters":[],"items":[],"events":[]}.\n` +
+		`Schema: {"locations":[],"characters":[],"items":[],"events":[]}. ` +
 		`Each element has name (<=60), description (<=500), shape ` +
 		`(tree|tower|cave|village|water|humanoid|warrior|mage|sprite|sword|potion|gem|scroll|dragon), ` +
 		`color ("#RRGGBB"), size ("small"|"medium"|"large").`;
@@ -168,21 +184,15 @@ export async function generateStoryElements({
 		`and no keys named thinking or reasoning. ${schemaLine} ` +
 		`Return exactly 1 location, 1 character, 1 item, 1 event.`;
 
-	// Messages differ slightly for stubborn models
-	const messages = jsonFriendly
+	// Messages differ slightly for stubborn models (few-shot + brace seed)
+	const messages = stubborn
 		? ([
-				{ role: "system", content: baseSystem },
 				{
-					role: "user",
+					role: "system",
 					content:
-						`Mode: ${mode}\n` +
-						`Current world (brief): ${JSON.stringify(worldBrief)}\n` +
-						`Seed: ${input}\n` +
-						`Return ONLY the minified JSON starting with { and ending with }.`,
+						baseSystem +
+						" Every field must be present and non-empty. If unsure, choose a plausible allowed value. Do not omit or leave any field blank.",
 				},
-		  ] as const)
-		: ([
-				{ role: "system", content: baseSystem },
 				{
 					role: "user",
 					content: "Example only. Follow exactly this shape and formatting:",
@@ -192,14 +202,29 @@ export async function generateStoryElements({
 					content:
 						'{"locations":[{"name":"Test Tower","description":"Stub.","shape":"tower","color":"#112233","size":"small"}],"characters":[{"name":"Test Keeper","description":"Stub.","shape":"humanoid","color":"#445566","size":"medium"}],"items":[{"name":"Test Prism","description":"Stub.","shape":"gem","color":"#778899","size":"small"}],"events":[{"name":"Test Reveal","description":"Stub.","shape":"scroll","color":"#AABBCC","size":"small"}]}',
 				},
-				{ role: "assistant", content: "{" }, // brace seed to bias JSON start
 				{
 					role: "user",
 					content:
 						`Mode: ${mode}\n` +
 						`Current world (brief): ${JSON.stringify(worldBrief)}\n` +
 						`Seed: ${input}\n` +
-						`Return ONLY the minified JSON starting with { and ending with }.`,
+						`Return ONLY the minified JSON starting with { and ending with }. Every object must include ALL fields with valid values.`,
+				},
+		  ] as const)
+		: ([
+				{
+					role: "system",
+					content:
+						baseSystem +
+						" Every field must be present and non-empty. If unsure, choose a plausible allowed value.",
+				},
+				{
+					role: "user",
+					content:
+						`Mode: ${mode}\n` +
+						`Current world (brief): ${JSON.stringify(worldBrief)}\n` +
+						`Seed: ${input}\n` +
+						`Return ONLY the minified JSON starting with { and ending with }. Every object must include ALL fields with valid values.`,
 				},
 		  ] as const);
 
@@ -207,12 +232,13 @@ export async function generateStoryElements({
 		model,
 		messages,
 		max_tokens: Math.max(250, Math.min(maxTokens, 900)),
-		temperature: jsonFriendly ? temperature : Math.min(temperature, 0.4), // cooler for stubborn models
+		temperature: stubborn ? Math.min(temperature, 0.4) : temperature,
 		stream: false,
 	};
 
-	// Ask server to enforce JSON only when model tends to honor it
+	// Ask server to enforce JSON only when the model tends to honor it
 	if (jsonFriendly) body.format = "json"; // server maps to response_format or native format
+	// Stubborn models rely on the example + brace seed, and our extractor
 
 	const response = await fetch("http://localhost:4000/api/chat", {
 		method: "POST",
