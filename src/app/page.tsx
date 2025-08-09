@@ -326,13 +326,13 @@ export default function Page() {
 						animate={{ opacity: 1, x: 0 }}
 						exit={{ opacity: 0, x: 80 }}
 						transition={{ duration: 0.4 }}
-						className="absolute left-8 top-24 w-80 max-h-[70vh] overflow-y-auto p-4 bg-black/60 backdrop-blur-lg rounded-lg text-white border border-white/20 z-20 pointer-events-auto"
+						className="absolute left-8 top-24 w-80 max-h-[70vh] overflow-y-auto p-4 bg-white/40 backdrop-blur-lg rounded-lg text-white border border-white/30 z-20 pointer-events-auto"
 					>
-						<h2 className="font-semibold text-lg mb-3">Story Log</h2>
+						<h2 className="font-bold mb-1">Story Log</h2>
 						{storyLog.map((entry, idx) => (
 							<div
 								key={idx}
-								className={`mb-2 text-white`}
+								className={`mb-2 text-sm text-white`}
 							>
 								<span className="font-bold">
 									{entry.role === "user" ? "You: " : "AI: "}

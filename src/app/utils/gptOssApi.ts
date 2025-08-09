@@ -6,6 +6,7 @@ type Element = {
 	color: string; // "#RRGGBB"
 	size: "small" | "medium" | "large";
 };
+
 type WorldState = {
 	locations?: Element[];
 	characters?: Element[];
@@ -37,19 +38,29 @@ const SHAPES = [
 	"dragon",
 ] as const;
 
+type Kind = keyof StoryElements;
+
+// sensible defaults per kind if shape is missing/invalid
+const DEFAULT_SHAPE: Record<Kind, (typeof SHAPES)[number]> = {
+	locations: "cave",
+	characters: "humanoid",
+	items: "gem",
+	events: "scroll",
+};
+
+// ---------- helpers ----------
 function brief<T>(arr: T[] | undefined, n: number): T[] {
 	return Array.isArray(arr) ? arr.slice(-n) : [];
 }
 
 function summarizeWorld(world: WorldState) {
 	return {
-		locations: brief(world.locations, 6).map(pickCore),
-		characters: brief(world.characters, 8).map(pickCore),
-		items: brief(world.items, 8).map(pickCore),
-		events: brief(world.events, 6).map(pickCore),
+		locations: brief(world.locations, 4).map(pickCore),
+		characters: brief(world.characters, 6).map(pickCore),
+		items: brief(world.items, 6).map(pickCore),
+		events: brief(world.events, 4).map(pickCore),
 	};
 	function pickCore(e: any) {
-		// keep only small fields to save tokens
 		return {
 			name: e?.name ?? "",
 			shape: e?.shape ?? "",
@@ -62,11 +73,20 @@ function summarizeWorld(world: WorldState) {
 function sanitize(elements: any): StoryElements {
 	const isHex = (s: any) =>
 		typeof s === "string" && /^#[0-9A-Fa-f]{6}$/.test(s);
-	const coerce = (list: any[]): Element[] =>
+	const nonEmpty = (s: any) => typeof s === "string" && s.trim().length > 0;
+	const validShape = (s: any) =>
+		typeof s === "string" && (SHAPES as readonly string[]).includes(s);
+
+	const coerce = (list: any[], kind: Kind): Element[] =>
 		(Array.isArray(list) ? list : []).map((e) => {
-			const name = String(e?.name ?? "").slice(0, 60) || "Untitled";
-			const description = String(e?.description ?? "").slice(0, 500);
-			const shape = SHAPES.includes(e?.shape) ? e.shape : "gem";
+			const name = (nonEmpty(e?.name) ? String(e.name) : "Untitled").slice(
+				0,
+				60
+			);
+			const description = (
+				nonEmpty(e?.description) ? String(e.description) : "No description."
+			).slice(0, 500);
+			const shape = validShape(e?.shape) ? e.shape : DEFAULT_SHAPE[kind];
 			const color = isHex(e?.color)
 				? e.color
 				: "#" +
@@ -80,98 +100,15 @@ function sanitize(elements: any): StoryElements {
 		});
 
 	return {
-		locations: coerce(elements?.locations ?? []),
-		characters: coerce(elements?.characters ?? []),
-		items: coerce(elements?.items ?? []),
-		events: coerce(elements?.events ?? []),
+		locations: coerce(elements?.locations ?? [], "locations"),
+		characters: coerce(elements?.characters ?? [], "characters"),
+		items: coerce(elements?.items ?? [], "items"),
+		events: coerce(elements?.events ?? [], "events"),
 	};
 }
 
-export async function generateStoryElements({
-	input,
-	world,
-	mode,
-	temperature = 0.6,
-	maxTokens = 700,
-}: {
-	input: string;
-	world: WorldState;
-	mode: string;
-	temperature?: number;
-	maxTokens?: number;
-}): Promise<StoryElements> {
-	const worldBrief = summarizeWorld(world);
-
-	const response = await fetch("http://localhost:4000/api/chat", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			model: "gpt-oss-20b",
-			temperature,
-			max_tokens: maxTokens,
-
-			// 👇 tell your proxy to enable Ollama JSON mode
-			//   format: "json",
-
-			messages: [
-				{
-					role: "system",
-					content: `You are a world-building AI for a collaborative storytelling app.
-					Return strictly valid, minified JSON only. No prose, no code fences, and no keys named 'thinking', 'reasoning', or similar.
-Return JSON only. No prose or commentary.
-Output shape:
-{ "locations":[], "characters":[], "items":[], "events":[] }
-Each element must include:
-- name (string, <=60 chars)
-- description (string, <=500 chars)
-- shape (one of: ${SHAPES.join(", ")})
-- color ("#RRGGBB")
-- size ("small" | "medium" | "large")`,
-				},
-				{ role: "assistant", content: "{" },
-				{
-					role: "user",
-					content: `Mode: ${mode}
-Current world (brief): ${JSON.stringify(worldBrief)}
-
-User input: ${input}
-
-Respond ONLY with JSON of the required shape.`,
-				},
-			],
-		}),
-	});
-
-	if (!response.ok) {
-		const text = await response.text().catch(() => "");
-		throw new Error(`LLM error ${response.status}: ${text}`);
-	}
-
-	const data = await response.json();
-	const raw = data?.choices?.[0]?.message?.content;
-
-	// Some adapters already return parsed JSON; handle both cases.
-	const parsed =
-		typeof raw === "string"
-			? extractFirstJsonObject(raw) // handles trailing junk like "thinking"
-			: raw;
-	if (!parsed) return { locations: [], characters: [], items: [], events: [] };
-
-	return sanitize(parsed);
-}
-
-function safeParseJSON(s: string | undefined | null) {
+function extractFirstJsonObject(s: string | undefined | null): any | null {
 	if (!s) return null;
-	try {
-		return JSON.parse(s);
-	} catch {
-		return null;
-	}
-}
-
-function extractFirstJsonObject(s: string): any | null {
-	if (!s) return null;
-	// Grab from first '{' to the matching '}' using a simple brace counter
 	const start = s.indexOf("{");
 	if (start === -1) return null;
 	let depth = 0,
@@ -193,4 +130,106 @@ function extractFirstJsonObject(s: string): any | null {
 	} catch {
 		return null;
 	}
+}
+
+// Models that reliably obey JSON gates (OpenAI-compatible response_format)
+function isJsonFriendlyModel(model: string) {
+	// exclude gpt-oss; include smaller well-behaved families
+	return /(llama\s*3|llama3|llama:|qwen|phi|mistral:7b|llava)/i.test(model);
+}
+
+// ---------- main ----------
+export async function generateStoryElements({
+	input,
+	world,
+	mode,
+	temperature = 0.6,
+	maxTokens = 500,
+	model = process.env.NEXT_PUBLIC_MODEL ?? "llama3:8b",
+}: {
+	input: string;
+	world: WorldState;
+	mode: string;
+	temperature?: number;
+	maxTokens?: number;
+	model?: string;
+}): Promise<StoryElements> {
+	const worldBrief = summarizeWorld(world);
+	const jsonFriendly = isJsonFriendlyModel(model);
+
+	const schemaLine =
+		`Schema: {"locations":[],"characters":[],"items":[],"events":[]}.\n` +
+		`Each element has name (<=60), description (<=500), shape ` +
+		`(tree|tower|cave|village|water|humanoid|warrior|mage|sprite|sword|potion|gem|scroll|dragon), ` +
+		`color ("#RRGGBB"), size ("small"|"medium"|"large").`;
+
+	const baseSystem =
+		`You output ONLY a single JSON object. No prose, no code fences, no comments, ` +
+		`and no keys named thinking or reasoning. ${schemaLine} ` +
+		`Return exactly 1 location, 1 character, 1 item, 1 event.`;
+
+	// Messages differ slightly for stubborn models
+	const messages = jsonFriendly
+		? ([
+				{ role: "system", content: baseSystem },
+				{
+					role: "user",
+					content:
+						`Mode: ${mode}\n` +
+						`Current world (brief): ${JSON.stringify(worldBrief)}\n` +
+						`Seed: ${input}\n` +
+						`Return ONLY the minified JSON starting with { and ending with }.`,
+				},
+		  ] as const)
+		: ([
+				{ role: "system", content: baseSystem },
+				{
+					role: "user",
+					content: "Example only. Follow exactly this shape and formatting:",
+				},
+				{
+					role: "assistant",
+					content:
+						'{"locations":[{"name":"Test Tower","description":"Stub.","shape":"tower","color":"#112233","size":"small"}],"characters":[{"name":"Test Keeper","description":"Stub.","shape":"humanoid","color":"#445566","size":"medium"}],"items":[{"name":"Test Prism","description":"Stub.","shape":"gem","color":"#778899","size":"small"}],"events":[{"name":"Test Reveal","description":"Stub.","shape":"scroll","color":"#AABBCC","size":"small"}]}',
+				},
+				{ role: "assistant", content: "{" }, // brace seed to bias JSON start
+				{
+					role: "user",
+					content:
+						`Mode: ${mode}\n` +
+						`Current world (brief): ${JSON.stringify(worldBrief)}\n` +
+						`Seed: ${input}\n` +
+						`Return ONLY the minified JSON starting with { and ending with }.`,
+				},
+		  ] as const);
+
+	const body: any = {
+		model,
+		messages,
+		max_tokens: Math.max(250, Math.min(maxTokens, 900)),
+		temperature: jsonFriendly ? temperature : Math.min(temperature, 0.4), // cooler for stubborn models
+		stream: false,
+	};
+
+	// Ask server to enforce JSON only when model tends to honor it
+	if (jsonFriendly) body.format = "json"; // server maps to response_format or native format
+
+	const response = await fetch("http://localhost:4000/api/chat", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(body),
+	});
+
+	if (!response.ok) {
+		const text = await response.text().catch(() => "");
+		throw new Error(`LLM error ${response.status}: ${text}`);
+	}
+
+	const data = await response.json();
+	const raw = data?.choices?.[0]?.message?.content;
+
+	const parsed = typeof raw === "string" ? extractFirstJsonObject(raw) : raw;
+	if (!parsed) return { locations: [], characters: [], items: [], events: [] };
+
+	return sanitize(parsed);
 }

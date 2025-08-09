@@ -186,7 +186,7 @@ export default function WorldMap3D({
 
 			{/* Description overlay */}
 			{selected && (
-				<div className="absolute top-20 right-8 bg-white/40 backdrop-blur-md border border-white/30 rounded shadow-lg px-6 py-4 z-10 max-w-xs text-white">
+				<div className="absolute top-20 right-8 bg-white/40 backdrop-blur-md border border-white/30 rounded-lg shadow-lg px-6 py-4 z-10 max-w-xs text-white">
 					<div className="font-bold mb-1">{selected.label}</div>
 					<div className="mb-2 text-sm">{selected.description}</div>
 					<button
